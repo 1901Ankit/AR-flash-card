@@ -23,6 +23,8 @@ export default function MarkerTracker({
     const clock = new THREE.Clock();
 
     const start = async () => {
+      console.log("[MarkerTracker] Starting MindAR...");
+      console.log("[MarkerTracker] Container element:", containerRef.current);
       mindarThree = new MindARThree({
         container: containerRef.current,
         imageTargetSrc,
@@ -30,17 +32,24 @@ export default function MarkerTracker({
       mindarRef.current = mindarThree;
 
       const { renderer, scene, camera } = mindarThree;
+      console.log("[MarkerTracker] Renderer created:", renderer);
+      console.log("[MarkerTracker] Scene created:", scene);
+      console.log("[MarkerTracker] Camera created:", camera);
 
       const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
       const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
       directionalLight.position.set(0, 1, 1);
       scene.add(hemisphereLight, directionalLight);
 
+      console.log("[MarkerTracker] Adding anchor...");
       anchor = mindarThree.addAnchor(0);
 
+      console.log("[MarkerTracker] Building model with config:", modelConfig);
       modelObject = await buildModel(modelConfig);
       if (isCancelled) return;
+      console.log("[MarkerTracker] Model built, adding to anchor group");
       anchor.group.add(modelObject);
+      anchor.group.visible = true; // Force visible
 
       anchor.onTargetFound = () => onTargetFound?.();
       anchor.onTargetLost = () => onTargetLost?.();

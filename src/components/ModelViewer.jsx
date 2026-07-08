@@ -42,11 +42,13 @@ function createCube({ scale = 0.3 } = {}) {
  * Loads a GLB model asynchronously and centers it above the marker.
  */
 async function createGlb(config) {
+  console.log("[ModelViewer] Loading GLB model from:", config.url);
   const { GLTFLoader } = await import(
     "three/examples/jsm/loaders/GLTFLoader.js"
   );
   const loader = new GLTFLoader();
   const gltf = await loader.loadAsync(config.url);
+  console.log("[ModelViewer] GLB loaded successfully");
   const model = gltf.scene;
 
   const box = new THREE.Box3().setFromObject(model);
@@ -54,6 +56,8 @@ async function createGlb(config) {
   box.getSize(size);
   const center = new THREE.Vector3();
   box.getCenter(center);
+
+  console.log("[ModelViewer] Model size:", size, "center:", center);
 
   // Center horizontally and place the bottom of the model on the card.
   model.position.x = -center.x;
@@ -68,6 +72,7 @@ async function createGlb(config) {
     model.scale.setScalar(fitScale);
   }
 
+  console.log("[ModelViewer] Final model position:", model.position, "scale:", model.scale);
   model.userData.isArModel = true;
   return model;
 }
@@ -79,11 +84,13 @@ async function createGlb(config) {
  * @returns {Promise<THREE.Object3D>}
  */
 export async function buildModel(config = { type: "cube" }) {
+  console.log("[ModelViewer] buildModel called with config:", config);
   switch (config.type) {
     case "glb":
       return createGlb(config);
     case "cube":
     default:
+      console.log("[ModelViewer] Falling back to cube");
       return createCube(config);
   }
 }
