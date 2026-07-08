@@ -2,8 +2,9 @@ import { useState } from "react";
 import ARScene from "../components/ARScene";
 import useCamera, { CAMERA_STATUS } from "../hooks/useCamera";
 import targetMindUrl from "../assets/marker/target.mind?url";
+import gokuModelUrl from "../assets/goku.glb?url";
 const DEFAULT_TARGET_SRC = targetMindUrl;
-const DEFAULT_MODEL_CONFIG = { type: "cube", scale: 0.3 };
+const DEFAULT_MODEL_CONFIG = { type: "glb", url: gokuModelUrl, scale: 0.3 };
 
 export default function Home() {
   const { status, error, requestCameraPermission } = useCamera();

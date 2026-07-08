@@ -39,8 +39,7 @@ function createCube({ scale = 0.3 } = {}) {
 }
 
 /**
- * Loads a GLB model asynchronously. Placeholder for future scope - requires
- * `GLTFLoader` from `three/examples/jsm/loaders/GLTFLoader.js`.
+ * Loads a GLB model asynchronously and centers it above the marker.
  */
 async function createGlb(config) {
   const { GLTFLoader } = await import(
@@ -49,9 +48,27 @@ async function createGlb(config) {
   const loader = new GLTFLoader();
   const gltf = await loader.loadAsync(config.url);
   const model = gltf.scene;
+
+  const box = new THREE.Box3().setFromObject(model);
+  const size = new THREE.Vector3();
+  box.getSize(size);
+  const center = new THREE.Vector3();
+  box.getCenter(center);
+
+  // Center horizontally and place the bottom of the model on the card.
+  model.position.x = -center.x;
+  model.position.y = -box.min.y;
+  model.position.z = -center.z;
+
   if (config.scale) {
     model.scale.setScalar(config.scale);
+  } else {
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const fitScale = maxDim > 0 ? 1.5 / maxDim : 1;
+    model.scale.setScalar(fitScale);
   }
+
+  model.userData.isArModel = true;
   return model;
 }
 
@@ -82,5 +99,8 @@ export function animateModel(object, deltaSeconds) {
   if (object.userData.isAnimatedCube) {
     object.rotation.y += deltaSeconds * 1.2;
     object.rotation.x += deltaSeconds * 0.6;
+  }
+  if (object.userData.isArModel) {
+    object.rotation.y += deltaSeconds * 0.5;
   }
 }
