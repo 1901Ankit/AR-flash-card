@@ -57,6 +57,11 @@ export default function MarkerTracker({
 
     start().catch((err) => {
       console.error("MindAR failed to start:", err);
+      if (err?.message?.includes?.("fetch") || err?.message?.includes?.("load")) {
+        console.error(
+          "The .mind target file may be missing or empty. Run: npm run generate-marker"
+        );
+      }
     });
 
     return () => {
