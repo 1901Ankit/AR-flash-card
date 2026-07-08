@@ -11,4 +11,7 @@ export default defineConfig({
 
     babel({ presets: [reactCompilerPreset()] })
   ],
+  server: {
+    host: true,
+  },
 })
