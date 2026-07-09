@@ -1,12 +1,4 @@
 import * as THREE from "three";
-
-/**
- * ModelViewer
- * -----------
- * Builds the AR content shown on top of a detected flash card,
- * and updates it every frame.
- */
-
 function createCube({ scale = 0.3 } = {}) {
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial({
@@ -31,12 +23,10 @@ async function createGlb(config) {
   console.log("[ModelViewer] GLB loaded successfully");
   const model = gltf.scene;
 
-  // --- DEBUG: log every mesh separately to find what's inflating the box ---
   console.log("[ModelViewer] ---- Mesh breakdown ----");
-  // --- DEBUG: check materials + force visibility ---
   model.traverse((child) => {
     if (child.isMesh) {
-      child.frustumCulled = false; // prevent early culling before matrix updates
+      child.frustumCulled = false; 
       const mat = child.material;
       const mats = Array.isArray(mat) ? mat : [mat];
       mats.forEach((m, i) => {
@@ -59,23 +49,35 @@ async function createGlb(config) {
   console.log("[ModelViewer] Final scale:", model.scale, "position:", model.position);
   console.log("[ModelViewer] ------------------------");
 
+  const targetHeight = config.targetHeight ?? 0.5;
+
+  // Compute bounding box from the whole loaded scene.
   const box = new THREE.Box3().setFromObject(model);
   const size = new THREE.Vector3();
   box.getSize(size);
   const center = new THREE.Vector3();
   box.getCenter(center);
-  console.log("[ModelViewer] Raw model size:", size, "center:", center);
 
-  model.position.set(-center.x, -box.min.y, -center.z);
-
-  const targetHeight = config.targetHeight ?? 0.5;
   const maxDim = Math.max(size.x, size.y, size.z);
   const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 1);
-  model.scale.setScalar(autoScale);
-  console.log("[ModelViewer] Applied scale:", autoScale, "targetHeight:", targetHeight);
 
-  model.userData.isArModel = true;
-  return model;
+  // Wrap model in a group centered on the marker.
+  const wrapper = new THREE.Group();
+  model.position.set(-center.x, -box.min.y, -center.z);
+  model.scale.setScalar(autoScale);
+  wrapper.add(model);
+
+  // Debug: add a red cube at the anchor origin so we can see where the
+  // tracked center is. This cube should sit right on the card.
+  const debugCube = new THREE.Mesh(
+    new THREE.BoxGeometry(0.15, 0.15, 0.15),
+    new THREE.MeshBasicMaterial({ color: 0xff0000 })
+  );
+  debugCube.position.set(0, 0, 0);
+  wrapper.add(debugCube);
+
+  wrapper.userData.isArModel = true;
+  return wrapper;
 }
 
 export async function buildModel(config = { type: "cube" }) {
@@ -96,7 +98,8 @@ export function animateModel(object, deltaSeconds) {
     object.rotation.y += deltaSeconds * 1.2;
     object.rotation.x += deltaSeconds * 0.6;
   }
-  if (object.userData.isArModel) {
-    object.rotation.y += deltaSeconds * 0.5;
-  }
+  // Keep AR model static so it tracks smoothly with the card.
+  // if (object.userData.isArModel) {
+  //   object.rotation.y += deltaSeconds * 0.5;
+  // }
 }

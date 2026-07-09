@@ -10,6 +10,7 @@ export default function MarkerTracker({
   onTargetFound,
   onTargetLost,
   active,
+  onCleanupRef,
 }) {
   const mindarRef = useRef(null);
 
@@ -21,7 +22,6 @@ export default function MarkerTracker({
     let modelObject = null;
     const clock = new THREE.Clock();
 
-    // Fully stop everything: render loop, MindAR, and the raw camera stream.
     const hardStop = (instance) => {
       if (!instance) return;
       try {
@@ -30,9 +30,6 @@ export default function MarkerTracker({
       try {
         instance.stop();
       } catch {}
-      // Explicitly kill the camera track — mindarThree.stop() sometimes
-      // leaves the getUserMedia stream alive, which is what causes the
-      // camera/scan effect to keep "running" after exiting.
       try {
         const video = instance.video;
         const stream = video?.srcObject;
@@ -46,15 +43,38 @@ export default function MarkerTracker({
       } catch {}
     };
 
+    const stopAllCameraTracks = () => {
+      try {
+        const mediaDevices = navigator.mediaDevices;
+        if (!mediaDevices) return;
+        document.querySelectorAll("video").forEach((video) => {
+          const stream = video.srcObject;
+          if (stream?.getTracks) {
+            stream.getTracks().forEach((track) => track.stop());
+          }
+          video.srcObject = null;
+          video.remove();
+        });
+      } catch {}
+    };
+
+    const cleanup = () => {
+      isCancelled = true;
+      hardStop(mindarThree);
+      stopAllCameraTracks();
+      mindarRef.current = null;
+    };
+
+    if (onCleanupRef) {
+      onCleanupRef.current = cleanup;
+    }
+
     const start = async () => {
       mindarThree = new MindARThree({
         container: containerRef.current,
         imageTargetSrc,
       });
       mindarRef.current = mindarThree;
-
-      // If exit was clicked while MindAR was still initializing, bail out
-      // immediately instead of continuing to build the scene.
       if (isCancelled) {
         hardStop(mindarThree);
         return;
@@ -97,11 +117,7 @@ export default function MarkerTracker({
       console.error("MindAR failed to start:", err);
     });
 
-    return () => {
-      isCancelled = true;
-      hardStop(mindarRef.current);
-      mindarRef.current = null;
-    };
+    return cleanup;
   }, [active, imageTargetSrc]);
 
   return null;

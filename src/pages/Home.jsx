@@ -8,7 +8,7 @@ const DEFAULT_TARGET_SRC = targetMindUrl;
 const DEFAULT_MODEL_CONFIG = {
   type: "glb",
   url: gokuModelUrl,
-  targetHeight: 0.5,
+  targetHeight: 2.0,
 };
 
 export default function Home() {
@@ -36,10 +36,14 @@ export default function Home() {
         fontFamily: "'Inter', sans-serif",
         background:
           "radial-gradient(ellipse at 50% 20%, #1a1a3d 0%, #0B0B1E 55%, #08081566 100%)",
+        minHeight: "100dvh",
+        paddingTop: "max(env(safe-area-inset-top), 24px)",
+        paddingBottom: "max(env(safe-area-inset-bottom), 24px)",
+        paddingLeft: "max(env(safe-area-inset-left), 20px)",
+        paddingRight: "max(env(safe-area-inset-right), 20px)",
       }}
-      className="relative w-screen h-screen overflow-hidden flex flex-col items-center justify-center text-white px-6"
+      className="relative w-screen overflow-hidden flex flex-col items-center justify-center text-white"
     >
-      {/* ambient grid */}
       <div
         className="absolute inset-0 opacity-[0.07] pointer-events-none"
         style={{
@@ -49,8 +53,10 @@ export default function Home() {
         }}
       />
 
-      {/* Scan Portal — signature element */}
-      <div className="relative mb-10 w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center">
+      <div
+        className="relative mb-6 sm:mb-10 flex items-center justify-center"
+        style={{ width: "clamp(120px, 32vw, 192px)", height: "clamp(120px, 32vw, 192px)" }}
+      >
         <svg viewBox="0 0 200 200" className="absolute inset-0 animate-[spin_14s_linear_infinite]">
           <polygon
             points="100,10 175,55 175,145 100,190 25,145 25,55"
@@ -67,38 +73,34 @@ export default function Home() {
           </defs>
         </svg>
         <svg viewBox="0 0 200 200" className="absolute inset-0 animate-[spin_9s_linear_infinite_reverse] opacity-40">
-          <polygon
-            points="100,30 155,65 155,135 100,170 45,135 45,65"
-            fill="none"
-            stroke="#5EEAD4"
-            strokeWidth="1"
-          />
+          <polygon points="100,30 155,65 155,135 100,170 45,135 45,65" fill="none" stroke="#5EEAD4" strokeWidth="1" />
         </svg>
-        {/* floating card */}
         <div
-          className="relative w-16 h-20 sm:w-20 sm:h-24 rounded-lg animate-[float_3.4s_ease-in-out_infinite]"
+          className="relative rounded-lg animate-[float_3.4s_ease-in-out_infinite]"
           style={{
+            width: "clamp(56px, 15vw, 80px)",
+            height: "clamp(70px, 19vw, 96px)",
             background: "linear-gradient(155deg, #2a2a55, #1a1a3d)",
             border: "1px solid rgba(94,234,212,0.5)",
             boxShadow: "0 0 30px rgba(94,234,212,0.35), 0 0 60px rgba(139,92,246,0.2)",
           }}
         >
-          <div
-            className="absolute inset-2 rounded-md"
-            style={{ background: "linear-gradient(160deg, #5EEAD4aa, #8B5CF6aa)" }}
-          />
+          <div className="absolute inset-2 rounded-md" style={{ background: "linear-gradient(160deg, #5EEAD4aa, #8B5CF6aa)" }} />
         </div>
       </div>
 
       <h1
-        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
-        className="text-4xl sm:text-6xl font-bold tracking-tight text-center leading-[1.05]"
+        style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: "clamp(2rem, 8vw, 3.75rem)" }}
+        className="font-bold tracking-tight text-center leading-[1.05]"
       >
         <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#5EEAD4] to-[#8B5CF6]">
           AR Flash Card
         </span>
       </h1>
-      <p className="mt-4 text-[#A8A3C7] max-w-xs sm:max-w-md text-sm sm:text-base text-center leading-relaxed">
+      <p
+        style={{ fontSize: "clamp(0.85rem, 3vw, 1rem)" }}
+        className="mt-3 sm:mt-4 text-[#A8A3C7] max-w-[min(90vw,420px)] text-center leading-relaxed"
+      >
         Point your camera at the card. Watch it come alive.
       </p>
 
@@ -110,19 +112,21 @@ export default function Home() {
           fontFamily: "'Space Grotesk', sans-serif",
           background: "linear-gradient(135deg, #5EEAD4, #8B5CF6)",
           boxShadow: "0 0 25px rgba(94,234,212,0.45)",
+          fontSize: "clamp(0.95rem, 3.2vw, 1.125rem)",
+          minHeight: "56px",
         }}
-        className="mt-10 px-9 py-4 rounded-full font-semibold text-[#0B0B1E] disabled:opacity-50 disabled:cursor-not-allowed transition-transform hover:scale-105 active:scale-95 text-base sm:text-lg min-w-[220px]"
+        className="mt-8 sm:mt-10 px-8 sm:px-9 py-4 rounded-full font-semibold text-[#0B0B1E] disabled:opacity-50 disabled:cursor-not-allowed transition-transform hover:scale-105 active:scale-95 min-w-[200px] sm:min-w-[220px] max-w-[90vw]"
       >
         {status === CAMERA_STATUS.REQUESTING ? "Requesting Camera…" : "Start Scanning"}
       </button>
 
       {status === CAMERA_STATUS.DENIED && (
-        <p className="mt-4 text-red-400 text-sm max-w-xs sm:max-w-md text-center">
+        <p className="mt-4 text-red-400 text-sm max-w-[min(90vw,420px)] text-center">
           Camera permission was denied. Allow camera access in browser settings and try again.
         </p>
       )}
       {status === CAMERA_STATUS.UNSUPPORTED && (
-        <p className="mt-4 text-red-400 text-sm max-w-xs sm:max-w-md text-center">
+        <p className="mt-4 text-red-400 text-sm max-w-[min(90vw,420px)] text-center">
           {error || "Your browser does not support camera access."}
         </p>
       )}
