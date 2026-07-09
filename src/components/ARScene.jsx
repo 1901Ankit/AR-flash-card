@@ -1,9 +1,11 @@
 import { useRef, useState } from "react";
 import CameraView from "./CameraView";
 import MarkerTracker from "./MarkerTracker";
+
 export default function ARScene({ imageTargetSrc, modelConfig, onExit }) {
   const containerRef = useRef(null);
   const [isTargetFound, setIsTargetFound] = useState(false);
+
   return (
     <div className="relative w-screen h-screen">
       <CameraView ref={containerRef} />
@@ -26,7 +28,6 @@ export default function ARScene({ imageTargetSrc, modelConfig, onExit }) {
         </div>
       </div>
 
-      {/* Exit button */}
       <button
         type="button"
         onClick={onExit}

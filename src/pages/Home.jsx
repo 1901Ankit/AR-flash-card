@@ -3,8 +3,13 @@ import ARScene from "../components/ARScene";
 import useCamera, { CAMERA_STATUS } from "../hooks/useCamera";
 import targetMindUrl from "../assets/marker/target.mind?url";
 import gokuModelUrl from "../assets/goku.glb?url";
+
 const DEFAULT_TARGET_SRC = targetMindUrl;
-const DEFAULT_MODEL_CONFIG = { type: "glb", url: gokuModelUrl };
+const DEFAULT_MODEL_CONFIG = {
+  type: "glb",
+  url: gokuModelUrl,
+  targetHeight: 0.5, // model ki height marker card ke hisaab se — chhota chahiye to 0.3, bada chahiye to 0.8
+};
 
 export default function Home() {
   const { status, error, requestCameraPermission } = useCamera();
