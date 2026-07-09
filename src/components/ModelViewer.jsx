@@ -26,7 +26,7 @@ async function createGlb(config) {
   console.log("[ModelViewer] ---- Mesh breakdown ----");
   model.traverse((child) => {
     if (child.isMesh) {
-      child.frustumCulled = false; 
+      child.frustumCulled = false;
       const mat = child.material;
       const mats = Array.isArray(mat) ? mat : [mat];
       mats.forEach((m, i) => {
@@ -109,8 +109,5 @@ export function animateModel(object, deltaSeconds) {
     object.rotation.y += deltaSeconds * 1.2;
     object.rotation.x += deltaSeconds * 0.6;
   }
-  // Keep AR model static so it tracks smoothly with the card.
-  // if (object.userData.isArModel) {
-  //   object.rotation.y += deltaSeconds * 0.5;
-  // }
+
 }
