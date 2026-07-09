@@ -2,7 +2,6 @@ import { useEffect, useRef } from "react";
 import { MindARThree } from "mind-ar/dist/mindar-image-three.prod.js";
 import * as THREE from "three";
 import { buildModel, animateModel } from "./ModelViewer";
-
 export default function MarkerTracker({
   containerRef,
   imageTargetSrc,
@@ -12,16 +11,13 @@ export default function MarkerTracker({
   active,
 }) {
   const mindarRef = useRef(null);
-
   useEffect(() => {
     if (!active || !containerRef.current) return undefined;
-
     let isCancelled = false;
     let mindarThree = null;
     let anchor = null;
     let modelObject = null;
     const clock = new THREE.Clock();
-
     const start = async () => {
       console.log("[MarkerTracker] Starting MindAR...");
       console.log("[MarkerTracker] Container element:", containerRef.current);
@@ -30,40 +26,32 @@ export default function MarkerTracker({
         imageTargetSrc,
       });
       mindarRef.current = mindarThree;
-
       const { renderer, scene, camera } = mindarThree;
       console.log("[MarkerTracker] Renderer created:", renderer);
       console.log("[MarkerTracker] Scene created:", scene);
       console.log("[MarkerTracker] Camera created:", camera);
-
       const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
       const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
       directionalLight.position.set(0, 1, 1);
       scene.add(hemisphereLight, directionalLight);
-
       console.log("[MarkerTracker] Adding anchor...");
       anchor = mindarThree.addAnchor(0);
-
       console.log("[MarkerTracker] Building model with config:", modelConfig);
       modelObject = await buildModel(modelConfig);
       if (isCancelled) return;
       console.log("[MarkerTracker] Model built, adding to anchor group");
       anchor.group.add(modelObject);
-      anchor.group.visible = true; // Force visible
-
+      anchor.group.visible = true;
       anchor.onTargetFound = () => onTargetFound?.();
       anchor.onTargetLost = () => onTargetLost?.();
-
       await mindarThree.start();
       if (isCancelled) return;
-
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
         animateModel(modelObject, delta);
         renderer.render(scene, camera);
       });
     };
-
     start().catch((err) => {
       console.error("MindAR failed to start:", err);
       if (err?.message?.includes?.("fetch") || err?.message?.includes?.("load")) {
@@ -72,7 +60,6 @@ export default function MarkerTracker({
         );
       }
     });
-
     return () => {
       isCancelled = true;
       if (mindarThree) {
@@ -83,6 +70,5 @@ export default function MarkerTracker({
       mindarRef.current = null;
     };
   }, [active, imageTargetSrc]);
-
   return null;
 }

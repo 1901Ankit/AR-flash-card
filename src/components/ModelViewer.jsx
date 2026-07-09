@@ -1,5 +1,4 @@
 import * as THREE from "three";
-
 /**
  * ModelViewer
  * -----------
@@ -13,14 +12,12 @@ import * as THREE from "three";
  * MVP supports a "cube" type. Future types (glb, video, image, audio) can be
  * added here without touching the AR tracking logic in `MarkerTracker.jsx`.
  */
-
 /**
  * @typedef {Object} ModelConfig
  * @property {"cube" | "glb"} type
  * @property {string} [url] - required for type "glb"
  * @property {number} [scale]
  */
-
 /**
  * Creates the default placeholder object: a rotating, colored cube.
  */
@@ -37,7 +34,6 @@ function createCube({ scale = 0.3 } = {}) {
   cube.userData.isAnimatedCube = true;
   return cube;
 }
-
 /**
  * Loads a GLB model asynchronously and centers it above the marker.
  */
@@ -50,19 +46,19 @@ async function createGlb(config) {
   const gltf = await loader.loadAsync(config.url);
   console.log("[ModelViewer] GLB loaded successfully");
   const model = gltf.scene;
-
   const box = new THREE.Box3().setFromObject(model);
   const size = new THREE.Vector3();
   box.getSize(size);
   const center = new THREE.Vector3();
   box.getCenter(center);
-
   console.log("[ModelViewer] Model size:", size, "center:", center);
-
   // Center horizontally and place the bottom of the model on the card.
   model.position.x = -center.x;
   model.position.y = -box.min.y;
   model.position.z = -center.z;
+
+  // Move model closer to camera to ensure visibility
+  model.position.z += 0.5;
 
   if (config.scale) {
     model.scale.setScalar(config.scale);
@@ -71,12 +67,10 @@ async function createGlb(config) {
     const fitScale = maxDim > 0 ? 1.5 / maxDim : 1;
     model.scale.setScalar(fitScale);
   }
-
   console.log("[ModelViewer] Final model position:", model.position, "scale:", model.scale);
   model.userData.isArModel = true;
   return model;
 }
-
 /**
  * Builds the THREE.Object3D for a given model config. Falls back to the
  * default cube if the type is unknown or not yet implemented.
@@ -94,7 +88,6 @@ export async function buildModel(config = { type: "cube" }) {
       return createCube(config);
   }
 }
-
 /**
  * Adds a light rotation animation to any object flagged as an animated cube.
  * Called every frame from the MindAR render loop.
