@@ -69,6 +69,15 @@ async function createGlb(config) {
   }
   console.log("[ModelViewer] Final model position:", model.position, "scale:", model.scale);
   model.userData.isArModel = true;
+
+  // Debug: Add a red sphere at the same position to verify visibility
+  const sphereGeometry = new THREE.SphereGeometry(0.1, 16, 16);
+  const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+  const debugSphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+  debugSphere.position.set(0, 0.5, 0);
+  model.add(debugSphere);
+  console.log("[ModelViewer] Added debug sphere at model position");
+
   return model;
 }
 /**
