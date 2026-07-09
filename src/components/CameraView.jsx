@@ -9,6 +9,16 @@ const CameraView = forwardRef(function CameraView(_props, ref) {
       if (node) {
         node.innerHTML = "";
       }
+      // Aggressively stop all video elements when unmounting
+      document.querySelectorAll("video").forEach((video) => {
+        video.pause();
+        const stream = video.srcObject;
+        if (stream?.getTracks) {
+          stream.getTracks().forEach((track) => track.stop());
+        }
+        video.srcObject = null;
+        video.remove();
+      });
     };
   }, []);
 

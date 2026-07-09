@@ -8,8 +8,8 @@ const DEFAULT_TARGET_SRC = targetMindUrl;
 const DEFAULT_MODEL_CONFIG = {
   type: "glb",
   url: gokuModelUrl,
-  targetHeight: 2.0,
-  xOffset: -0.08, // slight left shift
+  targetHeight: 2.5,
+  xOffset: -0.25, // More left shift to center
 };
 
 export default function Home() {
@@ -26,7 +26,13 @@ export default function Home() {
       <ARScene
         imageTargetSrc={DEFAULT_TARGET_SRC}
         modelConfig={DEFAULT_MODEL_CONFIG}
-        onExit={() => setIsScanning(false)}
+        onExit={() => {
+          // Aggressively stop all camera streams
+          navigator.mediaDevices?.getUserMedia({ video: true }).then((stream) => {
+            stream.getTracks().forEach((track) => track.stop());
+          }).catch(() => {});
+          setIsScanning(false);
+        }}
       />
     );
   }

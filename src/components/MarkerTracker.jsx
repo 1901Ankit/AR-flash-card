@@ -13,6 +13,7 @@ export default function MarkerTracker({
   onCleanupRef,
 }) {
   const mindarRef = useRef(null);
+  const videoRef = useRef(null);
 
   useEffect(() => {
     if (!active || !containerRef.current) return undefined;
@@ -31,12 +32,16 @@ export default function MarkerTracker({
         instance.stop();
       } catch {}
       try {
-        const video = instance.video;
-        const stream = video?.srcObject;
-        if (stream?.getTracks) {
-          stream.getTracks().forEach((track) => track.stop());
+        const video = instance.video || videoRef.current;
+        if (video) {
+          videoRef.current = video;
+          const stream = video.srcObject;
+          if (stream?.getTracks) {
+            stream.getTracks().forEach((track) => track.stop());
+          }
+          video.srcObject = null;
+          video.pause();
         }
-        if (video) video.srcObject = null;
       } catch {}
       try {
         instance.renderer?.dispose();
@@ -59,10 +64,28 @@ export default function MarkerTracker({
     };
 
     const cleanup = () => {
+      console.log("[MarkerTracker] Cleanup called, stopping camera...");
       isCancelled = true;
       hardStop(mindarThree);
       stopAllCameraTracks();
       mindarRef.current = null;
+
+      // Specifically remove the MindAR video element using stored reference
+      if (videoRef.current) {
+        console.log("[MarkerTracker] Removing stored video element");
+        videoRef.current.pause();
+        videoRef.current.srcObject = null;
+        videoRef.current.remove();
+        videoRef.current = null;
+      }
+
+      // Also remove any remaining video elements
+      document.querySelectorAll("video").forEach((video) => {
+        video.pause();
+        video.srcObject = null;
+        video.remove();
+      });
+      console.log("[MarkerTracker] Cleanup complete");
     };
 
     if (onCleanupRef) {

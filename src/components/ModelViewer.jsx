@@ -82,6 +82,11 @@ async function createGlb(config) {
   model.scale.setScalar(autoScale);
   wrapper.add(model);
 
+  console.log("[ModelViewer] Bounding box size:", size, "center:", center);
+  console.log("[ModelViewer] Auto scale:", autoScale, "targetHeight:", targetHeight);
+  console.log("[ModelViewer] Final model position:", model.position, "scale:", model.scale);
+  console.log("[ModelViewer] Wrapper position:", wrapper.position);
+
   wrapper.userData.isArModel = true;
   return wrapper;
 }
