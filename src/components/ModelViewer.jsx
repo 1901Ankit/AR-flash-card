@@ -73,13 +73,13 @@ async function createGlb(config) {
   const maxDim = Math.max(size.x, size.y, size.z);
   const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 1);
 
-  // Wrap model in a group centered on the marker.
   const wrapper = new THREE.Group();
   const xOffset = config.xOffset || 0;
   const yOffset = config.yOffset || 0;
   const zOffset = config.zOffset || 0;
   model.position.set(-center.x + xOffset, -box.min.y + yOffset, -center.z + zOffset);
   model.scale.setScalar(autoScale);
+  model.rotation.set(0, 0, 0); 
   wrapper.add(model);
 
   console.log("[ModelViewer] Bounding box size:", size, "center:", center);
