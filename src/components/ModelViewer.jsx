@@ -31,7 +31,21 @@ async function createGlb(config) {
   console.log("[ModelViewer] GLB loaded successfully");
   const model = gltf.scene;
 
-  // --- measure the model's real size/pivot ---
+  // --- DEBUG: log every mesh separately to find what's inflating the box ---
+  console.log("[ModelViewer] ---- Mesh breakdown ----");
+  model.traverse((child) => {
+    if (child.isMesh) {
+      const meshBox = new THREE.Box3().setFromObject(child);
+      const meshSize = new THREE.Vector3();
+      meshBox.getSize(meshSize);
+      console.log(
+        `[ModelViewer] Mesh "${child.name || "(unnamed)"}" size:`,
+        meshSize
+      );
+    }
+  });
+  console.log("[ModelViewer] ------------------------");
+
   const box = new THREE.Box3().setFromObject(model);
   const size = new THREE.Vector3();
   box.getSize(size);
@@ -39,10 +53,8 @@ async function createGlb(config) {
   box.getCenter(center);
   console.log("[ModelViewer] Raw model size:", size, "center:", center);
 
-  // --- re-center so feet sit on the marker plane ---
   model.position.set(-center.x, -box.min.y, -center.z);
 
-  // --- auto-scale so the model always fits the target height ---
   const targetHeight = config.targetHeight ?? 0.5;
   const maxDim = Math.max(size.x, size.y, size.z);
   const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 1);
