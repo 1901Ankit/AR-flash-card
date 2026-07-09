@@ -51,8 +51,20 @@ async function createGlb(config) {
 
   const targetHeight = config.targetHeight ?? 0.5;
 
-  // Compute bounding box from the whole loaded scene.
-  const box = new THREE.Box3().setFromObject(model);
+  // Compute precise bounding box from actual mesh vertices so the model
+  // centers correctly even if the GLB origin is offset from its geometry.
+  model.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  model.traverse((child) => {
+    if (child.isMesh && child.geometry) {
+      const geom = child.geometry;
+      if (!geom.boundingBox) geom.computeBoundingBox();
+      const geomBox = geom.boundingBox.clone();
+      geomBox.applyMatrix4(child.matrixWorld);
+      box.union(geomBox);
+    }
+  });
+
   const size = new THREE.Vector3();
   box.getSize(size);
   const center = new THREE.Vector3();
@@ -63,18 +75,12 @@ async function createGlb(config) {
 
   // Wrap model in a group centered on the marker.
   const wrapper = new THREE.Group();
-  model.position.set(-center.x, -box.min.y, -center.z);
+  const xOffset = config.xOffset || 0;
+  const yOffset = config.yOffset || 0;
+  const zOffset = config.zOffset || 0;
+  model.position.set(-center.x + xOffset, -box.min.y + yOffset, -center.z + zOffset);
   model.scale.setScalar(autoScale);
   wrapper.add(model);
-
-  // Debug: add a red cube at the anchor origin so we can see where the
-  // tracked center is. This cube should sit right on the card.
-  const debugCube = new THREE.Mesh(
-    new THREE.BoxGeometry(0.15, 0.15, 0.15),
-    new THREE.MeshBasicMaterial({ color: 0xff0000 })
-  );
-  debugCube.position.set(0, 0, 0);
-  wrapper.add(debugCube);
 
   wrapper.userData.isArModel = true;
   return wrapper;

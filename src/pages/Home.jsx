@@ -9,6 +9,7 @@ const DEFAULT_MODEL_CONFIG = {
   type: "glb",
   url: gokuModelUrl,
   targetHeight: 2.0,
+  xOffset: -0.08, // slight left shift
 };
 
 export default function Home() {

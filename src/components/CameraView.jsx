@@ -19,7 +19,7 @@ const CameraView = forwardRef(function CameraView(_props, ref) {
         if (typeof ref === "function") ref(node);
         else if (ref) ref.current = node;
       }}
-      className="fixed inset-0 w-screen h-screen overflow-hidden bg-black"
+      className="fixed inset-0 w-screen h-dvh overflow-hidden bg-black"
     />
   );
 });
