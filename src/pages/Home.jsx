@@ -8,7 +8,7 @@ const DEFAULT_TARGET_SRC = targetMindUrl;
 const DEFAULT_MODEL_CONFIG = {
   type: "glb",
   url: gokuModelUrl,
-  targetHeight: 0.5, // model ki height marker card ke hisaab se — chhota chahiye to 0.3, bada chahiye to 0.8
+  targetHeight: 0.5,
 };
 
 export default function Home() {
@@ -17,9 +17,7 @@ export default function Home() {
 
   const handleStartScanning = async () => {
     const granted = await requestCameraPermission();
-    if (granted) {
-      setIsScanning(true);
-    }
+    if (granted) setIsScanning(true);
   };
 
   if (isScanning) {
@@ -33,33 +31,108 @@ export default function Home() {
   }
 
   return (
-    <div className="w-screen h-screen flex flex-col items-center justify-center gap-6 bg-gradient-to-b from-slate-900 to-slate-800 text-white px-6 text-center">
-      <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">AR Flash Card</h1>
-      <p className="text-slate-300 max-w-xs sm:max-w-md text-sm sm:text-base">
-        Point your camera at a flash card to bring it to life.
+    <div
+      style={{
+        fontFamily: "'Inter', sans-serif",
+        background:
+          "radial-gradient(ellipse at 50% 20%, #1a1a3d 0%, #0B0B1E 55%, #08081566 100%)",
+      }}
+      className="relative w-screen h-screen overflow-hidden flex flex-col items-center justify-center text-white px-6"
+    >
+      {/* ambient grid */}
+      <div
+        className="absolute inset-0 opacity-[0.07] pointer-events-none"
+        style={{
+          backgroundImage:
+            "linear-gradient(#5EEAD4 1px, transparent 1px), linear-gradient(90deg, #5EEAD4 1px, transparent 1px)",
+          backgroundSize: "48px 48px",
+        }}
+      />
+
+      {/* Scan Portal — signature element */}
+      <div className="relative mb-10 w-40 h-40 sm:w-48 sm:h-48 flex items-center justify-center">
+        <svg viewBox="0 0 200 200" className="absolute inset-0 animate-[spin_14s_linear_infinite]">
+          <polygon
+            points="100,10 175,55 175,145 100,190 25,145 25,55"
+            fill="none"
+            stroke="url(#ringGrad)"
+            strokeWidth="2.5"
+            strokeDasharray="18 14"
+          />
+          <defs>
+            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor="#5EEAD4" />
+              <stop offset="100%" stopColor="#8B5CF6" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <svg viewBox="0 0 200 200" className="absolute inset-0 animate-[spin_9s_linear_infinite_reverse] opacity-40">
+          <polygon
+            points="100,30 155,65 155,135 100,170 45,135 45,65"
+            fill="none"
+            stroke="#5EEAD4"
+            strokeWidth="1"
+          />
+        </svg>
+        {/* floating card */}
+        <div
+          className="relative w-16 h-20 sm:w-20 sm:h-24 rounded-lg animate-[float_3.4s_ease-in-out_infinite]"
+          style={{
+            background: "linear-gradient(155deg, #2a2a55, #1a1a3d)",
+            border: "1px solid rgba(94,234,212,0.5)",
+            boxShadow: "0 0 30px rgba(94,234,212,0.35), 0 0 60px rgba(139,92,246,0.2)",
+          }}
+        >
+          <div
+            className="absolute inset-2 rounded-md"
+            style={{ background: "linear-gradient(160deg, #5EEAD4aa, #8B5CF6aa)" }}
+          />
+        </div>
+      </div>
+
+      <h1
+        style={{ fontFamily: "'Space Grotesk', sans-serif" }}
+        className="text-4xl sm:text-6xl font-bold tracking-tight text-center leading-[1.05]"
+      >
+        <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#5EEAD4] to-[#8B5CF6]">
+          AR Flash Card
+        </span>
+      </h1>
+      <p className="mt-4 text-[#A8A3C7] max-w-xs sm:max-w-md text-sm sm:text-base text-center leading-relaxed">
+        Point your camera at the card. Watch it come alive.
       </p>
 
       <button
         type="button"
         onClick={handleStartScanning}
         disabled={status === CAMERA_STATUS.REQUESTING}
-        className="px-8 py-4 rounded-full bg-sky-500 hover:bg-sky-400 disabled:opacity-60 disabled:cursor-not-allowed font-semibold shadow-lg transition-colors text-base sm:text-lg min-w-[200px]"
+        style={{
+          fontFamily: "'Space Grotesk', sans-serif",
+          background: "linear-gradient(135deg, #5EEAD4, #8B5CF6)",
+          boxShadow: "0 0 25px rgba(94,234,212,0.45)",
+        }}
+        className="mt-10 px-9 py-4 rounded-full font-semibold text-[#0B0B1E] disabled:opacity-50 disabled:cursor-not-allowed transition-transform hover:scale-105 active:scale-95 text-base sm:text-lg min-w-[220px]"
       >
-        {status === CAMERA_STATUS.REQUESTING ? "Requesting Camera..." : "Start Scanning"}
+        {status === CAMERA_STATUS.REQUESTING ? "Requesting Camera…" : "Start Scanning"}
       </button>
 
       {status === CAMERA_STATUS.DENIED && (
-        <p className="text-red-400 text-sm max-w-xs sm:max-w-md">
-          Camera permission was denied. Please allow camera access in your
-          browser settings and try again.
+        <p className="mt-4 text-red-400 text-sm max-w-xs sm:max-w-md text-center">
+          Camera permission was denied. Allow camera access in browser settings and try again.
         </p>
       )}
-
       {status === CAMERA_STATUS.UNSUPPORTED && (
-        <p className="text-red-400 text-sm max-w-xs sm:max-w-md">
+        <p className="mt-4 text-red-400 text-sm max-w-xs sm:max-w-md text-center">
           {error || "Your browser does not support camera access."}
         </p>
       )}
+
+      <style>{`
+        @keyframes float {
+          0%, 100% { transform: translateY(0px) rotateX(8deg) rotateY(-8deg); }
+          50% { transform: translateY(-10px) rotateX(4deg) rotateY(8deg); }
+        }
+      `}</style>
     </div>
   );
 }
