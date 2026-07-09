@@ -13,9 +13,12 @@ body,
   font-family: "Poppins", sans-serif;
 }
 
-/* Ensure MindAR video covers full screen on mobile */
+/* Ensure video elements cover full screen on mobile */
 video {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
 }
