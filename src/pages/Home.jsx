@@ -8,8 +8,8 @@ const DEFAULT_TARGET_SRC = targetMindUrl;
 const DEFAULT_MODEL_CONFIG = {
   type: "glb",
   url: gokuModelUrl,
-  targetHeight: 2.5,
-  xOffset: -0.56, 
+  targetHeight: 2.0,
+  xOffset: -2.1, // Center the model
 };
 
 export default function Home() {
