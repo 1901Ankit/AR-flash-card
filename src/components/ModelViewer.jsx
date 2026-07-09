@@ -33,17 +33,30 @@ async function createGlb(config) {
 
   // --- DEBUG: log every mesh separately to find what's inflating the box ---
   console.log("[ModelViewer] ---- Mesh breakdown ----");
+  // --- DEBUG: check materials + force visibility ---
   model.traverse((child) => {
     if (child.isMesh) {
-      const meshBox = new THREE.Box3().setFromObject(child);
-      const meshSize = new THREE.Vector3();
-      meshBox.getSize(meshSize);
-      console.log(
-        `[ModelViewer] Mesh "${child.name || "(unnamed)"}" size:`,
-        meshSize
-      );
+      child.frustumCulled = false; // prevent early culling before matrix updates
+      const mat = child.material;
+      const mats = Array.isArray(mat) ? mat : [mat];
+      mats.forEach((m, i) => {
+        console.log(
+          `[ModelViewer] Mesh "${child.name}" material[${i}]:`,
+          {
+            type: m?.type,
+            color: m?.color,
+            map: m?.map ? "has texture" : "NO texture",
+            opacity: m?.opacity,
+            transparent: m?.transparent,
+            visible: m?.visible,
+          }
+        );
+      });
     }
   });
+
+  console.log("[ModelViewer] Final model.visible:", model.visible);
+  console.log("[ModelViewer] Final scale:", model.scale, "position:", model.position);
   console.log("[ModelViewer] ------------------------");
 
   const box = new THREE.Box3().setFromObject(model);
