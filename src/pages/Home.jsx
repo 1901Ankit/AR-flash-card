@@ -2,19 +2,39 @@ import { useState } from "react";
 import ARScene from "../components/ARScene";
 import useCamera, { CAMERA_STATUS } from "../hooks/useCamera";
 import targetMindUrl from "../assets/marker/target.mind?url";
+import target1MindUrl from "../assets/marker/target1.mind?url";
 import gokuModelUrl from "../assets/goku.glb?url";
+import dragonModelUrl from "../assets/dragon.glb?url";
 
-const DEFAULT_TARGET_SRC = targetMindUrl;
-const DEFAULT_MODEL_CONFIG = {
-  type: "glb",
-  url: gokuModelUrl,
-  targetHeight: 2.0,
-  xOffset: -2.1, // Center the model
-};
+const CARDS = [
+  {
+    id: 1,
+    name: "Goku",
+    marker: targetMindUrl,
+    model: {
+      type: "glb",
+      url: gokuModelUrl,
+      targetHeight: 2.0,
+      xOffset: -2.1,
+    },
+  },
+  {
+    id: 2,
+    name: "Dragon",
+    marker: target1MindUrl,
+    model: {
+      type: "glb",
+      url: dragonModelUrl,
+      targetHeight: 1.5,
+      xOffset: 0,
+    },
+  },
+];
 
 export default function Home() {
   const { status, error, requestCameraPermission } = useCamera();
   const [isScanning, setIsScanning] = useState(false);
+  const [selectedCard, setSelectedCard] = useState(CARDS[0]);
 
   const handleStartScanning = async () => {
     const granted = await requestCameraPermission();
@@ -24,8 +44,8 @@ export default function Home() {
   if (isScanning) {
     return (
       <ARScene
-        imageTargetSrc={DEFAULT_TARGET_SRC}
-        modelConfig={DEFAULT_MODEL_CONFIG}
+        imageTargetSrc={selectedCard.marker}
+        modelConfig={selectedCard.model}
         onExit={() => {
           // Aggressively stop all camera streams
           navigator.mediaDevices?.getUserMedia({ video: true }).then((stream) => {
@@ -110,6 +130,27 @@ export default function Home() {
       >
         Point your camera at the card. Watch it come alive.
       </p>
+
+      <div className="mt-6 sm:mt-8 flex gap-3 justify-center flex-wrap max-w-[min(90vw,420px)]">
+        {CARDS.map((card) => (
+          <button
+            key={card.id}
+            type="button"
+            onClick={() => setSelectedCard(card)}
+            className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
+              selectedCard.id === card.id
+                ? "bg-[#5EEAD4]/20 border-[#5EEAD4] text-[#5EEAD4]"
+                : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+            }`}
+            style={{
+              fontFamily: "'Space Grotesk', sans-serif",
+              border: "1px solid",
+            }}
+          >
+            {card.name}
+          </button>
+        ))}
+      </div>
 
       <button
         type="button"
