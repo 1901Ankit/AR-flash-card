@@ -70,18 +70,18 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
       className="pointer-events-none absolute inset-0 flex flex-col justify-between z-20 overflow-hidden"
     >
       {/* Top Bar */}
-      <div className="flex items-center justify-between w-full gap-2">
+      <div className="relative z-50 flex items-center justify-between w-full gap-2">
         {/* Status Badge */}
         <div
-          className={`pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full font-medium backdrop-blur-md border text-[11px] sm:text-xs transition-all shadow-lg truncate max-w-[60vw] ${
+          className={`pointer-events-auto flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl font-medium backdrop-blur-md border text-[11px] sm:text-xs transition-all truncate max-w-[60vw] ${
             isTargetFound
-              ? "bg-[#5EEAD4]/20 border-[#5EEAD4]/60 text-[#5EEAD4]"
-              : "bg-white/10 border-white/20 text-white"
+              ? "bg-[#141824]/90 border-slate-700 text-violet-200"
+              : "bg-[#141824]/90 border-slate-700/80 text-slate-200"
           }`}
         >
           <span
-            className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full shrink-0 ${
-              isTargetFound ? "bg-[#5EEAD4] animate-ping" : "bg-white/60 animate-pulse"
+            className={`w-2 h-2 rounded-full shrink-0 ${
+              isTargetFound ? "bg-emerald-400" : "bg-slate-400"
             }`}
           />
           <span className="truncate">{isTargetFound ? item.title : "Point Camera at Marker…"}</span>
@@ -91,38 +91,54 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 shrink-0">
           {item?.audio && (
             <button
-              onClick={toggleSpeech}
-              className={`p-2.5 sm:p-3 rounded-full backdrop-blur-md border transition-all ${
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleSpeech();
+              }}
+              style={{ touchAction: "manipulation" }}
+              className={`p-2.5 rounded-xl backdrop-blur-md border transition-all cursor-pointer ${
                 isPlayingAudio
-                  ? "bg-[#5EEAD4] text-[#0B0B1E] border-[#5EEAD4] shadow-lg shadow-[#5EEAD4]/40"
-                  : "bg-white/10 text-white border-white/20 hover:bg-white/20"
+                  ? "bg-violet-600 text-white border-violet-500 shadow-sm"
+                  : "bg-slate-900/90 text-slate-300 border-slate-700 hover:bg-slate-800"
               }`}
               title={isPlayingAudio ? "Mute Narration" : "Play Narration"}
             >
               {isPlayingAudio ? (
-                <Volume2 className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse" />
+                <Volume2 className="w-4 h-4 text-white" />
               ) : (
-                <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
+                <VolumeX className="w-4 h-4 text-slate-400" />
               )}
             </button>
           )}
 
           {item?.quiz && (
             <button
-              onClick={() => setShowQuiz(true)}
-              className="p-2.5 sm:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowQuiz(true);
+              }}
+              style={{ touchAction: "manipulation" }}
+              className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 backdrop-blur-md transition-colors cursor-pointer shadow-sm"
               title="Interactive Quiz"
             >
-              <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+              <HelpCircle className="w-4 h-4 text-violet-400" />
             </button>
           )}
 
           <button
-            onClick={onExit}
-            className="p-2.5 sm:p-3 rounded-full bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onExit();
+            }}
+            onTouchEnd={(e) => {
+              e.stopPropagation();
+              onExit();
+            }}
+            style={{ touchAction: "manipulation" }}
+            className="p-2.5 rounded-xl bg-slate-900/90 hover:bg-red-900/80 text-slate-200 hover:text-white border border-slate-700 backdrop-blur-md active:scale-95 transition-all cursor-pointer shadow-sm"
             title="Exit AR"
           >
-            <X className="w-4 h-4 sm:w-5 sm:h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
@@ -145,14 +161,14 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
               style={{
                 width: "clamp(24px, 8vw, 38px)",
                 height: "clamp(24px, 8vw, 38px)",
-                borderColor: isTargetFound ? "#5EEAD4" : "rgba(255,255,255,0.7)",
+                borderColor: isTargetFound ? "#8B5CF6" : "rgba(255,255,255,0.4)",
               }}
             />
           ))}
           {!isTargetFound && (
             <div
               className="absolute left-0 right-0 h-[2px] animate-[scanline_2s_ease-in-out_infinite]"
-              style={{ background: "linear-gradient(90deg, transparent, #5EEAD4, transparent)" }}
+              style={{ background: "linear-gradient(90deg, transparent, #8B5CF6, transparent)" }}
             />
           )}
         </div>
@@ -165,10 +181,10 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
             <button
               key={idx}
               onClick={() => handlePageChange(idx)}
-              className={`px-3 py-1 rounded-full text-[11px] sm:text-xs font-semibold backdrop-blur-md border transition-all ${
+              className={`px-3 py-1 rounded-xl text-[11px] sm:text-xs font-medium backdrop-blur-md border transition-all ${
                 activeStoryPage === idx
-                  ? "bg-[#5EEAD4] text-[#0B0B1E] border-[#5EEAD4]"
-                  : "bg-black/40 text-white/80 border-white/20 hover:bg-black/60"
+                  ? "bg-violet-600 text-white border-violet-500 shadow-sm"
+                  : "bg-slate-900/80 text-slate-300 border-slate-700 hover:bg-slate-800 hover:text-white"
               }`}
             >
               Page {p.page}
@@ -184,39 +200,39 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
           <div className="flex items-center justify-center gap-2 flex-wrap">
             <button
               onClick={() => handleScaleModel(1.15)}
-              className="px-3 py-1.5 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-semibold flex items-center gap-1 shadow-lg active:scale-95 transition-transform"
+              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
               title="Scale Up"
             >
-              <Plus className="w-3.5 h-3.5 text-[#5EEAD4]" /> Scale +
+              <Plus className="w-3.5 h-3.5 text-slate-300" /> Scale +
             </button>
             <button
               onClick={() => handleScaleModel(0.85)}
-              className="px-3 py-1.5 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-semibold flex items-center gap-1 shadow-lg active:scale-95 transition-transform"
+              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
               title="Scale Down"
             >
-              <Minus className="w-3.5 h-3.5 text-amber-300" /> Scale -
+              <Minus className="w-3.5 h-3.5 text-slate-300" /> Scale -
             </button>
             <button
               onClick={handleRotateModel}
-              className="px-3 py-1.5 rounded-full bg-black/70 hover:bg-black/90 backdrop-blur-md border border-white/20 text-white text-[11px] sm:text-xs font-semibold flex items-center gap-1 shadow-lg active:scale-95 transition-transform"
+              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
               title="Rotate 3D Model"
             >
-              <RotateCw className="w-3.5 h-3.5 text-purple-300" /> Rotate
+              <RotateCw className="w-3.5 h-3.5 text-slate-300" /> Rotate
             </button>
           </div>
 
-          <div className="bg-black/70 backdrop-blur-xl border border-white/15 rounded-2xl p-3.5 sm:p-4 text-white shadow-2xl animate-fade-in max-h-[28vh] overflow-y-auto">
+          <div className="bg-[#141824]/95 backdrop-blur-md border border-slate-700 rounded-2xl p-3.5 sm:p-4 text-slate-100 shadow-xl animate-fade-in max-h-[28vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-bold uppercase bg-[#5EEAD4]/20 text-[#5EEAD4] border border-[#5EEAD4]/30">
+                  <span className="px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold uppercase bg-slate-800 text-violet-300 border border-slate-700">
                     {item.category.replace("_", " ")}
                   </span>
-                  <h3 className="font-bold text-sm sm:text-base font-['Space_Grotesk'] text-white">
+                  <h3 className="font-bold text-sm sm:text-base text-slate-100">
                     {item.pages ? item.pages[activeStoryPage]?.title : item.title}
                   </h3>
                 </div>
-                <p className="text-[11px] sm:text-xs text-[#A8A3C7] mt-1 leading-relaxed line-clamp-3">
+                <p className="text-[11px] sm:text-xs text-slate-400 mt-1 leading-relaxed line-clamp-3">
                   {item.pages ? item.pages[activeStoryPage]?.text : item.description}
                 </p>
               </div>
@@ -227,23 +243,23 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
 
       {/* Interactive Quiz Popup Modal */}
       {showQuiz && item?.quiz && (
-        <div className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className="w-full max-w-sm bg-[#0F0F26] border border-[#5EEAD4]/30 rounded-2xl p-6 text-white shadow-2xl">
+        <div className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-sm bg-[#141824] border border-slate-700 rounded-2xl p-6 text-slate-100 shadow-2xl">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-xs uppercase font-bold text-[#5EEAD4] flex items-center gap-1">
-                <HelpCircle className="w-4 h-4" /> AR Knowledge Quiz
+              <span className="text-xs uppercase font-semibold text-violet-300 flex items-center gap-1">
+                <HelpCircle className="w-4 h-4 text-violet-400" /> AR Knowledge Quiz
               </span>
               <button
                 onClick={() => {
                   setShowQuiz(false);
                   setSelectedQuizAnswer(null);
                 }}
-                className="text-white/60 hover:text-white"
+                className="text-slate-400 hover:text-white"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <h4 className="text-sm font-semibold mb-4">{item.quiz.question}</h4>
+            <h4 className="text-sm font-semibold mb-4 text-slate-100">{item.quiz.question}</h4>
             <div className="flex flex-col gap-2">
               {item.quiz.options.map((option, idx) => {
                 const isSelected = selectedQuizAnswer === idx;
@@ -254,14 +270,14 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
                     onClick={() => setSelectedQuizAnswer(idx)}
                     className={`flex items-center justify-between p-3 rounded-xl border text-xs font-medium text-left transition-all ${
                       selectedQuizAnswer === null
-                        ? "bg-white/5 border-white/10 hover:bg-white/10"
+                        ? "bg-slate-900 border-slate-700 hover:bg-slate-800 text-slate-200"
                         : isSelected && isCorrect
-                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
+                        ? "bg-emerald-950/60 border-emerald-600 text-emerald-300"
                         : isSelected && !isCorrect
-                        ? "bg-rose-500/20 border-rose-500 text-rose-300"
+                        ? "bg-red-950/60 border-red-600 text-red-300"
                         : isCorrect
-                        ? "bg-emerald-500/20 border-emerald-500 text-emerald-300"
-                        : "opacity-40 border-white/5"
+                        ? "bg-emerald-950/60 border-emerald-600 text-emerald-300"
+                        : "opacity-40 border-slate-800 text-slate-400"
                     }`}
                   >
                     <span>{option}</span>
@@ -271,7 +287,7 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
               })}
             </div>
             {selectedQuizAnswer !== null && (
-              <p className="text-xs text-center mt-4 font-semibold text-[#5EEAD4]">
+              <p className="text-xs text-center mt-4 font-semibold text-violet-300">
                 {selectedQuizAnswer === item.quiz.answer
                   ? "🎉 Correct! Super job!"
                   : "💡 Keep learning! Check the facts again."}

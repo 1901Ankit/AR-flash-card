@@ -92,12 +92,17 @@ export default function MarkerTracker({
         videoRef.current = null;
       }
 
-      // Also remove any remaining video elements
+      // Also remove any remaining video elements & MindAR injected overlays
       document.querySelectorAll("video").forEach((video) => {
         video.pause();
         video.srcObject = null;
         video.remove();
       });
+
+      document.querySelectorAll(".mindar-ui-overlay, .mindar-ui-scanning, .mindar-ui-loading").forEach((el) => {
+        el.remove();
+      });
+
       console.log("[MarkerTracker] Cleanup complete");
     };
 
@@ -109,6 +114,8 @@ export default function MarkerTracker({
       mindarThree = new MindARThree({
         container: containerRef.current,
         imageTargetSrc,
+        uiScanning: "no",
+        uiLoading: "no",
       });
       mindarRef.current = mindarThree;
       if (isCancelled) {
@@ -119,14 +126,13 @@ export default function MarkerTracker({
       const { renderer, scene, camera } = mindarThree;
       renderer.setClearColor(0x000000, 0);
 
-      // Multi-directional lighting setup for vibrant 3D AR models
-      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
-      const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x334155, 1.4);
-      const frontLight = new THREE.DirectionalLight(0xffffff, 1.2);
-      frontLight.position.set(0, 2, 2);
-      const backLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      backLight.position.set(0, -2, -2);
-      scene.add(ambientLight, hemisphereLight, frontLight, backLight);
+      // Balanced natural lighting setup (preserves true texture colors and prevents white washout)
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
+      const mainLight = new THREE.DirectionalLight(0xffffff, 0.65);
+      mainLight.position.set(1, 2, 2);
+      const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
+      fillLight.position.set(-1, -1, 1);
+      scene.add(ambientLight, mainLight, fillLight);
 
       const anchor = mindarThree.addAnchor(0);
       modelObject = await buildModel(modelConfig);

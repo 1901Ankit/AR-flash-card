@@ -92,36 +92,29 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
   return (
     <div
       style={{
-        fontFamily: "'Space Grotesk', 'Inter', sans-serif",
-        background:
-          "radial-gradient(ellipse at 50% 0%, #17153a 0%, #0c0a21 40%, #060511 100%)",
+        backgroundColor: "#0d0f17",
       }}
-      className="w-full min-h-screen text-white p-4 sm:p-8 relative overflow-x-hidden overflow-y-auto pb-16 selection:bg-[#5EEAD4] selection:text-black"
+      className="w-full min-h-screen text-slate-100 p-4 sm:p-8 relative overflow-x-hidden overflow-y-auto pb-16 selection:bg-violet-600 selection:text-white"
     >
-      {/* Background ambient glow */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[400px] bg-gradient-to-b from-[#5EEAD4]/10 via-[#8B5CF6]/10 to-transparent blur-3xl pointer-events-none" />
-
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header Navigation */}
-        <div className="flex items-center justify-between pb-6 border-b border-white/10 mb-8">
+        <div className="flex items-center justify-between pb-6 border-b border-slate-800 mb-8">
           <div className="flex items-center gap-3.5">
             <button
               onClick={() => {
                 sfx.playClick();
                 onBack();
               }}
-              className="px-4 py-2 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white text-xs font-bold transition-all hover:scale-105 active:scale-95"
+              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-xs font-medium transition-all active:scale-95 shadow-sm"
             >
               ← Back to Catalog
             </button>
             <div>
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-black flex items-center gap-2">
-                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-[#5EEAD4]" />
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-[#5EEAD4] to-[#C084FC]">
-                  AI AR Production Studio
-                </span>
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-extrabold flex items-center gap-2 text-slate-50">
+                <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-violet-400" />
+                <span>AI AR Production Studio</span>
               </h1>
-              <p className="text-xs sm:text-sm text-[#A8A3C7]">
+              <p className="text-xs sm:text-sm text-slate-400">
                 Autonomous 2D Marker, 3D Geometry, Voice Narration & Packaging Generator
               </p>
             </div>
@@ -133,9 +126,9 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
           {/* Left Column: Creator Form */}
           <div className="lg:col-span-5 flex flex-col gap-6">
             {/* Step 1: Select Format */}
-            <div className="bg-[#0f0d26]/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-xl">
-              <label className="text-xs font-black uppercase tracking-wider text-[#5EEAD4] flex items-center gap-2 mb-3.5">
-                <Layers className="w-4 h-4" /> 1. Select Product Format
+            <div className="bg-[#141824] border border-slate-800 rounded-2xl p-6 shadow-sm">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2 mb-3.5">
+                <Layers className="w-4 h-4 text-violet-400" /> 1. Select Product Format
               </label>
               <div className="grid grid-cols-2 gap-2.5">
                 {[
@@ -154,17 +147,17 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
                         sfx.playClick();
                         setCategory(item.id);
                       }}
-                      className={`flex flex-col items-start p-3.5 rounded-2xl border text-left transition-all ${
+                      className={`flex flex-col items-start p-3.5 rounded-xl border text-left transition-all ${
                         isSelected
-                          ? "bg-[#5EEAD4]/20 border-[#5EEAD4] text-white shadow-lg shadow-[#5EEAD4]/15 scale-[1.02]"
-                          : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                          ? "bg-violet-600/20 border-violet-500 text-violet-200 shadow-sm"
+                          : "bg-slate-800/60 border-slate-700/70 text-slate-300 hover:bg-slate-800 hover:text-white"
                       }`}
                     >
                       <div className="flex items-center justify-between w-full mb-1">
-                        <Icon className={`w-4 h-4 ${isSelected ? "text-[#5EEAD4]" : "text-white/60"}`} />
-                        <span className="text-[9px] font-bold uppercase opacity-60">{item.tag}</span>
+                        <Icon className={`w-4 h-4 ${isSelected ? "text-violet-300" : "text-slate-400"}`} />
+                        <span className="text-[9px] font-semibold uppercase opacity-60">{item.tag}</span>
                       </div>
-                      <span className="text-xs font-bold">{item.label}</span>
+                      <span className="text-xs font-semibold">{item.label}</span>
                     </button>
                   );
                 })}
@@ -172,11 +165,11 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
             </div>
 
             {/* Step 2: Prompt / Topic Input */}
-            <div className="bg-[#0f0d26]/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-xl">
-              <label className="text-xs font-black uppercase tracking-wider text-[#5EEAD4] flex items-center gap-2 mb-2">
-                <Wand2 className="w-4 h-4" /> 2. Enter Topic or AI Prompt
+            <div className="bg-[#141824] border border-slate-800 rounded-2xl p-6 shadow-sm">
+              <label className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2 mb-2">
+                <Wand2 className="w-4 h-4 text-violet-400" /> 2. Enter Topic or AI Prompt
               </label>
-              <p className="text-xs text-[#A8A3C7] mb-3.5 leading-relaxed font-normal">
+              <p className="text-xs text-slate-400 mb-3.5 leading-relaxed font-normal">
                 Describe any character, planet, game scene, or story. The AI engine generates the 2D marker, 3D rig, voice narration, and printable layout.
               </p>
               <div className="relative">
@@ -186,7 +179,7 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
                   onChange={(e) => setTopic(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleGenerate()}
                   placeholder="e.g. Tyrannosaurus Rex, Solar System Saturn, Cyber Arena..."
-                  className="w-full px-4 py-3.5 bg-black/50 border border-white/20 rounded-2xl text-white text-sm placeholder-white/40 focus:outline-none focus:border-[#5EEAD4] transition-colors"
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-sm placeholder-slate-500 focus:outline-none focus:border-violet-500 transition-colors"
                 />
               </div>
 
@@ -201,7 +194,7 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
                       setTopic(idea.topic);
                       setCategory(idea.cat);
                     }}
-                    className="px-3 py-1 rounded-full text-[11px] font-semibold bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 hover:text-white transition-all hover:scale-105 active:scale-95"
+                    className="px-3 py-1 rounded-full text-[11px] font-medium bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all active:scale-95"
                   >
                     + {idea.topic}
                   </button>
@@ -213,19 +206,16 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
                 type="button"
                 onClick={handleGenerate}
                 disabled={isGenerating || !topic.trim()}
-                style={{
-                  background: "linear-gradient(135deg, #5EEAD4, #8B5CF6)",
-                }}
-                className="w-full mt-6 py-4 rounded-2xl font-black text-[#080718] text-sm shadow-2xl shadow-[#5EEAD4]/20 hover:shadow-[#5EEAD4]/40 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                className="w-full mt-6 py-3.5 rounded-xl font-semibold text-white text-sm bg-violet-600 hover:bg-violet-500 active:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm"
               >
                 {isGenerating ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
                     <span>Synthesizing AR Experience with AI…</span>
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4" />
+                    <Sparkles className="w-4 h-4 text-white" />
                     <span>Generate AR Experience with AI</span>
                   </>
                 )}
@@ -233,8 +223,8 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
 
               {/* Live progress status */}
               {isGenerating && (
-                <div className="mt-4 p-3.5 rounded-2xl bg-black/60 border border-[#5EEAD4]/40 text-xs text-[#5EEAD4] font-mono flex items-center gap-2 animate-pulse">
-                  <Radio className="w-4 h-4 text-[#5EEAD4] animate-ping" />
+                <div className="mt-4 p-3 rounded-xl bg-slate-900 border border-violet-500/40 text-xs text-violet-300 font-mono flex items-center gap-2">
+                  <Radio className="w-4 h-4 text-violet-400 animate-pulse" />
                   <span>{generationStep}</span>
                 </div>
               )}
@@ -244,17 +234,17 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
           {/* Right Column: Generated Output Preview */}
           <div className="lg:col-span-7">
             {generatedItem ? (
-              <div className="bg-[#0f0d26]/80 border border-[#5EEAD4]/30 rounded-3xl p-6 sm:p-8 shadow-2xl backdrop-blur-xl flex flex-col gap-6 animate-fade-in">
+              <div className="bg-[#141824] border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-sm flex flex-col gap-6 animate-fade-in">
                 {/* Header info */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 border-b border-white/10 pb-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 border-b border-slate-800 pb-5">
                   <div>
-                    <div className="inline-block px-3 py-1 rounded-full text-[10px] font-black uppercase bg-[#5EEAD4]/20 text-[#5EEAD4] border border-[#5EEAD4]/30 mb-1.5">
+                    <div className="inline-block px-3 py-0.5 rounded-full text-[10px] font-semibold uppercase bg-slate-800 text-violet-300 border border-slate-700 mb-1.5">
                       {generatedItem.category.replace("_", " ")}
                     </div>
-                    <h2 className="text-2xl sm:text-3xl font-black text-white">
+                    <h2 className="text-2xl sm:text-3xl font-bold text-slate-100">
                       {generatedItem.title}
                     </h2>
-                    <p className="text-xs text-[#A8A3C7] mt-0.5">{generatedItem.tagline}</p>
+                    <p className="text-xs text-slate-400 mt-0.5">{generatedItem.tagline}</p>
                   </div>
 
                   <div className="flex items-center gap-2">
@@ -263,32 +253,29 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
                         sfx.playClick();
                         setShowPrintModal(true);
                       }}
-                      className="px-4 py-2.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 text-xs font-bold flex items-center gap-1.5 transition-all"
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs font-medium text-slate-300 hover:text-white flex items-center gap-1.5 transition-all"
                     >
-                      <Printer className="w-4 h-4 text-[#5EEAD4]" /> Print Sheet
+                      <Printer className="w-4 h-4 text-slate-400" /> Print Sheet
                     </button>
                     <button
                       onClick={() => onLaunchAR(generatedItem)}
-                      style={{
-                        background: "linear-gradient(135deg, #5EEAD4, #8B5CF6)",
-                      }}
-                      className="px-5 py-2.5 rounded-2xl font-black text-[#080718] text-xs flex items-center gap-1.5 shadow-lg shadow-[#5EEAD4]/25 hover:scale-105 active:scale-95 transition-transform"
+                      className="px-5 py-2 rounded-xl font-semibold text-white text-xs bg-violet-600 hover:bg-violet-500 active:bg-violet-700 flex items-center gap-1.5 transition-all shadow-sm"
                     >
-                      <Eye className="w-4 h-4" /> Test in AR
+                      <Eye className="w-4 h-4 text-white" /> Test in AR
                     </button>
                   </div>
                 </div>
 
                 {/* Marker Image & AI Quality Score */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 items-center">
-                  <div className="relative rounded-2xl overflow-hidden border border-white/20 aspect-[4/5] bg-black shadow-xl group">
+                  <div className="relative rounded-xl overflow-hidden border border-slate-800 aspect-[4/5] bg-slate-900 shadow-sm group">
                     <img
                       src={generatedItem.markerPreview}
                       alt={generatedItem.title}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       crossOrigin="anonymous"
                     />
-                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-black/80 backdrop-blur-md text-[10px] font-bold text-[#5EEAD4] border border-[#5EEAD4]/30">
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-slate-900/90 backdrop-blur-sm text-[10px] font-medium text-slate-200 border border-slate-700">
                       AI AR Marker Art
                     </div>
                   </div>
@@ -296,44 +283,44 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
                   <div className="flex flex-col gap-3.5">
                     {/* Quality badge */}
                     {markerQuality && (
-                      <div className="p-4 rounded-2xl bg-black/50 border border-white/10">
+                      <div className="p-4 rounded-xl bg-slate-900 border border-slate-800">
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="text-xs text-white/70 font-semibold">AR Tracking Stability</span>
-                          <span className="text-xs font-black text-[#5EEAD4]">
+                          <span className="text-xs text-slate-400 font-medium">AR Tracking Stability</span>
+                          <span className="text-xs font-bold text-violet-400">
                             {markerQuality.score}% ({markerQuality.rating})
                           </span>
                         </div>
-                        <div className="w-full h-2 rounded-full bg-white/10 overflow-hidden mb-2">
+                        <div className="w-full h-2 rounded-full bg-slate-800 overflow-hidden mb-2">
                           <div
-                            className="h-full bg-gradient-to-r from-[#5EEAD4] to-[#8B5CF6]"
+                            className="h-full bg-violet-500"
                             style={{ width: `${markerQuality.score}%` }}
                           />
                         </div>
-                        <p className="text-[11px] text-[#A8A3C7] leading-relaxed">{markerQuality.message}</p>
+                        <p className="text-[11px] text-slate-400 leading-relaxed">{markerQuality.message}</p>
                       </div>
                     )}
 
                     {/* AI Narration Audio Preview */}
-                    <div className="p-4 rounded-2xl bg-black/50 border border-white/10 flex flex-col gap-2">
+                    <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-white/90">AI Voice Narration</span>
+                        <span className="text-xs font-semibold text-slate-200">AI Voice Narration</span>
                         <button
                           onClick={handlePlayVoice}
-                          className="px-3 py-1.5 rounded-full bg-[#5EEAD4]/20 border border-[#5EEAD4]/40 text-[#5EEAD4] text-xs font-bold flex items-center gap-1.5 hover:bg-[#5EEAD4]/30 transition-colors"
+                          className="px-3 py-1 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-medium flex items-center gap-1.5 hover:bg-slate-700 transition-colors"
                         >
-                          {isPlayingVoice ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+                          {isPlayingVoice ? <VolumeX className="w-3.5 h-3.5 text-slate-300" /> : <Volume2 className="w-3.5 h-3.5 text-slate-300" />}
                           <span>{isPlayingVoice ? "Mute" : "Listen Voice"}</span>
                         </button>
                       </div>
-                      <p className="text-xs text-white/80 italic line-clamp-3 leading-relaxed font-normal">
+                      <p className="text-xs text-slate-300 italic line-clamp-3 leading-relaxed font-normal">
                         "{generatedItem.audio.script}"
                       </p>
                     </div>
 
                     {/* 3D Geometry Spec */}
-                    <div className="p-4 rounded-2xl bg-black/50 border border-white/10 text-xs text-white/80 flex items-center justify-between">
-                      <span className="font-semibold">3D Geometry Engine</span>
-                      <span className="font-mono text-[#5EEAD4] font-bold uppercase">
+                    <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-400 flex items-center justify-between">
+                      <span className="font-medium">3D Geometry Engine</span>
+                      <span className="font-mono text-violet-400 font-bold uppercase">
                         {generatedItem.model.type}
                       </span>
                     </div>
@@ -341,14 +328,14 @@ export default function AIStudio({ onLaunchAR, onAddToCatalog, onBack }) {
                 </div>
               </div>
             ) : (
-              <div className="h-full min-h-[440px] bg-[#0f0d26]/60 border border-dashed border-white/15 rounded-3xl p-8 flex flex-col items-center justify-center text-center">
-                <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-[#5EEAD4] mb-4 shadow-lg shadow-[#5EEAD4]/10">
+              <div className="h-full min-h-[440px] bg-[#141824] border border-dashed border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center text-center shadow-sm">
+                <div className="p-4 rounded-xl bg-slate-800 border border-slate-700 text-violet-400 mb-4">
                   <Cpu className="w-8 h-8" />
                 </div>
-                <h3 className="text-lg font-bold text-white">
+                <h3 className="text-lg font-bold text-slate-200">
                   Autonomous AI Generator Ready
                 </h3>
-                <p className="text-xs text-[#A8A3C7] max-w-sm mt-1.5 leading-relaxed font-normal">
+                <p className="text-xs text-slate-400 max-w-sm mt-1.5 leading-relaxed font-normal">
                   Select a category and topic on the left. The automated multi-modal pipeline will build the 3D model, marker, audio narration, and printable layout in seconds.
                 </p>
               </div>

@@ -1,12 +1,26 @@
 @import url("https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap");
 @import "tailwindcss";
 
+:root {
+  --royal-violet: #8B5CF6;
+  --sky-blue: #38BDF8;
+  --sunshine: #FBBF24;
+  --coral: #F87171;
+  --mint: #34D399;
+  --dark-bg: #0d0f17;
+  --dark-surface: #141824;
+  --dark-card: #161b2a;
+  --dark-border: rgba(255, 255, 255, 0.08);
+  color-scheme: dark;
+}
+
 html {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
-  background: #060511;
+  background: #0d0f17;
+  color: #f1f5f9;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
@@ -17,11 +31,35 @@ body {
   min-height: 100%;
   margin: 0;
   padding: 0;
-  background: #060511;
+  background: #0d0f17;
+  color: #f1f5f9;
   font-family: "Poppins", sans-serif;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+}
+
+/* Custom dark scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0d0f17;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e2538;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2b354f;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Poppins", sans-serif;
 }
 
 #root {

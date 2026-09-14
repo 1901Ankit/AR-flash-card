@@ -154,26 +154,26 @@ export default function PrintExporter({ item, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-3xl bg-[#0F0F26] border border-[#5EEAD4]/30 rounded-3xl shadow-2xl p-6 text-white max-h-[92vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+      <div className="relative w-full max-w-3xl bg-[#141824] border border-slate-700 rounded-2xl shadow-2xl p-6 text-slate-100 max-h-[92vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-2xl bg-[#5EEAD4]/10 border border-[#5EEAD4]/30 text-[#5EEAD4]">
+            <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-violet-400">
               <Printer className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-xl font-bold font-['Space_Grotesk'] text-white">
+              <h2 className="text-xl font-bold text-slate-100">
                 Automated Print & Packaging Layout
               </h2>
-              <p className="text-xs text-[#A8A3C7]">
+              <p className="text-xs text-slate-400">
                 Ready-to-print CMYK layout with dynamic WebAR QR code & marker
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-full hover:bg-white/10 text-white/60 hover:text-white transition-colors"
+            className="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
@@ -247,33 +247,30 @@ export default function PrintExporter({ item, onClose }) {
         </div>
 
         {/* Actions */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-white/10">
-          <div className="flex items-center gap-2 text-xs text-[#5EEAD4]">
-            <CheckCircle2 className="w-4 h-4" /> Automated CMYK 300 DPI Export Ready
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-800">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Automated CMYK 300 DPI Export Ready
           </div>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <button
               onClick={handlePrint}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 text-white text-sm font-medium transition-all"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-all"
             >
-              <Printer className="w-4 h-4" /> Print Template
+              <Printer className="w-4 h-4 text-slate-400" /> Print Template
             </button>
             <button
               onClick={handleDownloadImage}
               disabled={isDownloading}
-              style={{
-                background: "linear-gradient(135deg, #5EEAD4, #8B5CF6)",
-              }}
-              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-full text-[#0B0B1E] text-sm font-bold shadow-lg shadow-[#5EEAD4]/20 hover:scale-105 active:scale-95 disabled:opacity-50 transition-transform"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-violet-600 hover:bg-violet-500 active:bg-violet-700 text-white text-sm font-semibold shadow-sm active:scale-95 disabled:opacity-50 transition-all"
             >
               {isDownloading ? (
                 <>
-                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <RefreshCw className="w-4 h-4 animate-spin text-white" />
                   <span>Generating High-Res...</span>
                 </>
               ) : (
                 <>
-                  <Download className="w-4 h-4" />
+                  <Download className="w-4 h-4 text-white" />
                   <span>Download Card / Image</span>
                 </>
               )}
