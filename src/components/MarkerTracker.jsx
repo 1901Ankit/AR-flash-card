@@ -117,10 +117,16 @@ export default function MarkerTracker({
       }
 
       const { renderer, scene, camera } = mindarThree;
-      const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
-      const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
-      directionalLight.position.set(0, 1, 1);
-      scene.add(hemisphereLight, directionalLight);
+      renderer.setClearColor(0x000000, 0);
+
+      // Multi-directional lighting setup for vibrant 3D AR models
+      const ambientLight = new THREE.AmbientLight(0xffffff, 1.8);
+      const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x334155, 1.4);
+      const frontLight = new THREE.DirectionalLight(0xffffff, 1.2);
+      frontLight.position.set(0, 2, 2);
+      const backLight = new THREE.DirectionalLight(0xffffff, 0.8);
+      backLight.position.set(0, -2, -2);
+      scene.add(ambientLight, hemisphereLight, frontLight, backLight);
 
       const anchor = mindarThree.addAnchor(0);
       modelObject = await buildModel(modelConfig);

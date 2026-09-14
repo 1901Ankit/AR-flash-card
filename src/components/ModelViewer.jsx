@@ -213,6 +213,10 @@ async function createGlb(config) {
         child.frustumCulled = false;
         child.castShadow = true;
         child.receiveShadow = true;
+        if (child.material) {
+          child.material.side = THREE.DoubleSide;
+          if (child.material.map) child.material.map.needsUpdate = true;
+        }
       }
     });
 
@@ -225,34 +229,30 @@ async function createGlb(config) {
       });
     }
 
-    const targetHeight = config.targetHeight ?? 0.5;
+    const targetHeight = config.targetHeight ?? 0.6;
     model.updateMatrixWorld(true);
-    const box = new THREE.Box3();
-    model.traverse((child) => {
-      if (child.isMesh && child.geometry) {
-        const geom = child.geometry;
-        if (!geom.boundingBox) geom.computeBoundingBox();
-        const geomBox = geom.boundingBox.clone();
-        geomBox.applyMatrix4(child.matrixWorld);
-        box.union(geomBox);
-      }
-    });
 
+    const box = new THREE.Box3().setFromObject(model);
     const size = new THREE.Vector3();
     box.getSize(size);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-
     const maxDim = Math.max(size.x, size.y, size.z);
-    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 1);
+    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.6);
 
-    const wrapper = new THREE.Group();
+    // Apply scale to model
+    model.scale.setScalar(autoScale);
+    model.updateMatrixWorld(true);
+
+    // Compute scaled center and align to anchor center
+    const scaledBox = new THREE.Box3().setFromObject(model);
+    const scaledCenter = new THREE.Vector3();
+    scaledBox.getCenter(scaledCenter);
+
     const xOffset = config.xOffset || 0;
     const yOffset = config.yOffset || 0;
     const zOffset = config.zOffset || 0;
-    model.position.set(-center.x + xOffset, -center.y + yOffset, -center.z + zOffset);
-    model.scale.setScalar(autoScale);
-    model.rotation.set(0, 0, 0);
+    model.position.set(-scaledCenter.x + xOffset, -scaledCenter.y + yOffset, -scaledCenter.z + zOffset);
+
+    const wrapper = new THREE.Group();
     wrapper.position.set(0, 0, 0.05);
     wrapper.add(model);
 

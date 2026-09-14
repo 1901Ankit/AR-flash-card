@@ -168,28 +168,28 @@ export default function Home() {
       </header>
 
       {/* Hero Hologram Section */}
-      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-12 flex-1 flex flex-col justify-center">
+      <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-8 md:py-12 flex-1 flex flex-col justify-start">
         {/* Holographic Portal Display */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center mb-12">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-center mb-8 sm:mb-12">
           {/* Left Hero Details */}
           <div className="lg:col-span-7 flex flex-col items-start text-left">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-[#5EEAD4]/15 to-[#8B5CF6]/15 border border-[#5EEAD4]/30 text-xs font-bold text-[#5EEAD4] mb-4 backdrop-blur-md">
-              <Zap className="w-3.5 h-3.5" /> 100% Zero-Designer Automated AR Pipeline
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gradient-to-r from-[#5EEAD4]/15 to-[#8B5CF6]/15 border border-[#5EEAD4]/30 text-[11px] sm:text-xs font-bold text-[#5EEAD4] mb-3 backdrop-blur-md">
+              <Zap className="w-3 h-3" /> 100% Zero-Designer Automated AR Pipeline
             </div>
 
-            <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-[1.1] tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-black leading-tight tracking-tight">
               Bring Physical Objects To Life In{" "}
               <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#5EEAD4] via-[#93C5FD] to-[#C084FC]">
                 Holographic 3D
               </span>
             </h1>
 
-            <p className="mt-4 text-sm sm:text-base text-[#A8A3C7] leading-relaxed max-w-xl font-normal">
-              Scan flashcards, game box lids, and storybook pages straight from your browser. Experience synchronized voice narrations, 3D character interactions, and smart quizzes.
+            <p className="mt-2.5 sm:mt-4 text-xs sm:text-sm md:text-base text-[#A8A3C7] leading-relaxed max-w-xl font-normal">
+              Scan flashcards, game box packaging, and storybook pages straight from your phone browser. Experience synchronized voice narrations, 3D animations, and smart quizzes.
             </p>
 
             {/* CTA Buttons */}
-            <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5 w-full sm:w-auto">
+            <div className="mt-5 sm:mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5 w-full sm:w-auto">
               <button
                 type="button"
                 onClick={() => handleStartScanning(selectedItem)}
@@ -197,10 +197,10 @@ export default function Home() {
                 style={{
                   background: "linear-gradient(135deg, #5EEAD4, #8B5CF6)",
                 }}
-                className="group relative px-8 py-4 rounded-full font-black text-[#080718] text-base shadow-2xl shadow-[#5EEAD4]/30 hover:shadow-[#5EEAD4]/50 hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-3"
+                className="group relative px-6 sm:px-8 py-3.5 sm:py-4 rounded-full font-black text-[#080718] text-xs sm:text-sm shadow-xl shadow-[#5EEAD4]/25 hover:shadow-[#5EEAD4]/40 hover:scale-105 active:scale-95 disabled:opacity-50 transition-all flex items-center justify-center gap-2.5"
               >
                 <div className="p-1 rounded-full bg-black/20 text-black">
-                  <Camera className="w-4 h-4" />
+                  <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
                 <span>
                   {status === CAMERA_STATUS.REQUESTING
@@ -215,52 +215,52 @@ export default function Home() {
                   sfx.playClick();
                   setPrintItem(selectedItem);
                 }}
-                className="px-6 py-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white text-sm font-bold flex items-center justify-center gap-2 backdrop-blur-md hover:border-[#5EEAD4]/50 transition-all"
+                className="px-5 sm:px-6 py-3 sm:py-4 rounded-full bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs sm:text-sm font-bold flex items-center justify-center gap-2 backdrop-blur-md hover:border-[#5EEAD4]/50 transition-all"
               >
-                <Printer className="w-4 h-4 text-[#5EEAD4]" />
+                <Printer className="w-3.5 h-3.5 text-[#5EEAD4]" />
                 <span>Get Print & QR Sheet</span>
               </button>
             </div>
 
             {/* Camera error messages */}
             {status === CAMERA_STATUS.DENIED && (
-              <p className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+              <p className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
                 Camera access was blocked. Please allow camera permissions in browser settings.
               </p>
             )}
             {status === CAMERA_STATUS.UNSUPPORTED && (
-              <p className="mt-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+              <p className="mt-3 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
                 {error || "Camera access unsupported."}
               </p>
             )}
           </div>
 
           {/* Right Hero Hologram Card Preview */}
-          <div className="lg:col-span-5 flex justify-center">
-            <div className="relative group w-full max-w-[340px] aspect-[3/4] rounded-3xl p-1 bg-gradient-to-b from-[#5EEAD4]/40 via-[#8B5CF6]/30 to-transparent shadow-2xl shadow-[#5EEAD4]/10 transition-transform duration-500 hover:rotate-1">
-              <div className="w-full h-full rounded-[22px] bg-[#0d0b24] p-5 flex flex-col justify-between overflow-hidden relative border border-white/10">
+          <div className="lg:col-span-5 flex justify-center mt-2 lg:mt-0">
+            <div className="relative group w-full max-w-[280px] sm:max-w-[320px] aspect-[3/4] rounded-2xl sm:rounded-3xl p-1 bg-gradient-to-b from-[#5EEAD4]/40 via-[#8B5CF6]/30 to-transparent shadow-xl shadow-[#5EEAD4]/10 transition-transform duration-500">
+              <div className="w-full h-full rounded-[18px] sm:rounded-[22px] bg-[#0d0b24] p-3.5 sm:p-5 flex flex-col justify-between overflow-hidden relative border border-white/10">
                 {/* Cyber corner accents */}
-                <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-[#5EEAD4]" />
-                <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-[#5EEAD4]" />
-                <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-[#5EEAD4]" />
-                <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-[#5EEAD4]" />
+                <div className="absolute top-2 left-2 w-2.5 h-2.5 border-t-2 border-l-2 border-[#5EEAD4]" />
+                <div className="absolute top-2 right-2 w-2.5 h-2.5 border-t-2 border-r-2 border-[#5EEAD4]" />
+                <div className="absolute bottom-2 left-2 w-2.5 h-2.5 border-b-2 border-l-2 border-[#5EEAD4]" />
+                <div className="absolute bottom-2 right-2 w-2.5 h-2.5 border-b-2 border-r-2 border-[#5EEAD4]" />
 
                 {/* Top Badge */}
                 <div className="flex items-center justify-between">
-                  <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-[#5EEAD4]/20 text-[#5EEAD4] border border-[#5EEAD4]/30 flex items-center gap-1.5">
-                    <Radio className="w-3 h-3 animate-pulse" /> LIVE SELECTED ASSET
+                  <span className="px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-black uppercase bg-[#5EEAD4]/20 text-[#5EEAD4] border border-[#5EEAD4]/30 flex items-center gap-1.5">
+                    <Radio className="w-2.5 h-2.5 animate-pulse" /> LIVE SELECTED ASSET
                   </span>
                   <button
                     onClick={() => setPreviewMarkerItem(selectedItem)}
-                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+                    className="p-1 rounded-lg bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
                     title="Fullscreen Marker"
                   >
-                    <Maximize2 className="w-3.5 h-3.5" />
+                    <Maximize2 className="w-3 h-3" />
                   </button>
                 </div>
 
                 {/* Image Hologram Texture */}
-                <div className="relative my-4 aspect-video rounded-xl overflow-hidden border border-white/20 bg-black/60 shadow-inner group-hover:scale-105 transition-transform duration-300">
+                <div className="relative my-2.5 sm:my-3.5 aspect-video rounded-xl overflow-hidden border border-white/20 bg-black/60 shadow-inner group-hover:scale-105 transition-transform duration-300">
                   <img
                     src={selectedItem.markerPreview}
                     alt={selectedItem.title}
@@ -268,20 +268,20 @@ export default function Home() {
                     crossOrigin="anonymous"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
-                  <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between text-[11px] text-[#5EEAD4] font-mono">
-                    <span>TRACKING: ACTIVE</span>
+                  <div className="absolute bottom-1.5 left-2 right-2 flex items-center justify-between text-[10px] text-[#5EEAD4] font-mono">
+                    <span>TRACKING: READY</span>
                     <span>3D RIG: {selectedItem.model?.type || "GLB"}</span>
                   </div>
                 </div>
 
                 {/* Card Title & Audio Quote */}
                 <div>
-                  <h3 className="text-xl font-black text-white">{selectedItem.title}</h3>
-                  <p className="text-xs text-[#A8A3C7] mt-0.5 line-clamp-1">{selectedItem.tagline}</p>
+                  <h3 className="text-base sm:text-lg font-black text-white">{selectedItem.title}</h3>
+                  <p className="text-[11px] sm:text-xs text-[#A8A3C7] mt-0.5 line-clamp-1">{selectedItem.tagline}</p>
 
-                  <div className="mt-3 p-2.5 rounded-xl bg-black/40 border border-white/10 flex items-center gap-2">
-                    <Volume2 className="w-4 h-4 text-[#5EEAD4] shrink-0" />
-                    <p className="text-[11px] text-white/80 italic truncate">
+                  <div className="mt-2 p-2 rounded-xl bg-black/40 border border-white/10 flex items-center gap-2">
+                    <Volume2 className="w-3.5 h-3.5 text-[#5EEAD4] shrink-0" />
+                    <p className="text-[10px] sm:text-[11px] text-white/80 italic truncate">
                       "{selectedItem.audio?.script}"
                     </p>
                   </div>
@@ -292,7 +292,7 @@ export default function Home() {
         </div>
 
         {/* Feature Highlights Ticker */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mb-8 sm:mb-10">
           {[
             { icon: Zap, label: "Zero App Download", desc: "Runs in Web Browser" },
             { icon: Cpu, label: "AI Automated Engine", desc: "No Designer Required" },
@@ -303,14 +303,14 @@ export default function Home() {
             return (
               <div
                 key={idx}
-                className="p-3.5 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl flex items-center gap-3 hover:border-[#5EEAD4]/30 transition-colors"
+                className="p-3 sm:p-4 rounded-2xl bg-white/[0.03] border border-white/10 backdrop-blur-xl flex items-center gap-2.5 sm:gap-3 hover:border-[#5EEAD4]/30 transition-colors"
               >
-                <div className="p-2.5 rounded-xl bg-[#5EEAD4]/10 text-[#5EEAD4] border border-[#5EEAD4]/20 shrink-0">
-                  <Icon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <div className="p-2 sm:p-2.5 rounded-xl bg-[#5EEAD4]/10 text-[#5EEAD4] border border-[#5EEAD4]/20 shrink-0">
+                  <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                 </div>
                 <div>
-                  <h4 className="text-xs sm:text-sm font-bold text-white">{item.label}</h4>
-                  <p className="text-[10px] sm:text-xs text-[#A8A3C7]">{item.desc}</p>
+                  <h4 className="text-[11px] sm:text-xs md:text-sm font-bold text-white">{item.label}</h4>
+                  <p className="text-[9px] sm:text-[11px] text-[#A8A3C7]">{item.desc}</p>
                 </div>
               </div>
             );
