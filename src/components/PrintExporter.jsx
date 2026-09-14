@@ -256,7 +256,7 @@ export default function PrintExporter({ item, onClose }) {
               onClick={handlePrint}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-all"
             >
-              <Printer className="w-4 h-4 text-slate-400" /> Print Template
+              <Printer className="w-4 h-4 text-slate-400" /> Print Template.
             </button>
             <button
               onClick={handleDownloadImage}
