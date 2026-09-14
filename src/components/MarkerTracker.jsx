@@ -63,12 +63,25 @@ export default function MarkerTracker({
       } catch {}
     };
 
+    const handleResize = () => {
+      if (mindarThree?.renderer && mindarThree?.camera) {
+        const width = containerRef.current?.clientWidth || window.innerWidth;
+        const height = containerRef.current?.clientHeight || window.innerHeight;
+        mindarThree.renderer.setSize(width, height);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("orientationchange", handleResize);
+
     const cleanup = () => {
       console.log("[MarkerTracker] Cleanup called, stopping camera...");
       isCancelled = true;
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("orientationchange", handleResize);
       hardStop(mindarThree);
       stopAllCameraTracks();
       mindarRef.current = null;
+      window.__arCurrentModel = null;
 
       // Specifically remove the MindAR video element using stored reference
       if (videoRef.current) {
@@ -119,6 +132,7 @@ export default function MarkerTracker({
 
       anchor.group.add(modelObject);
       anchor.group.visible = true;
+      window.__arCurrentModel = modelObject;
       anchor.onTargetFound = () => onTargetFound?.();
       anchor.onTargetLost = () => onTargetLost?.();
 

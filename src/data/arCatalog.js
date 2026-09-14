@@ -24,11 +24,11 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: gokuModelUrl,
-      targetHeight: 2.0,
-      xOffset: -2.1,
+      targetHeight: 1.5,
+      xOffset: 0,
       yOffset: 0,
       zOffset: 0,
-      rotationSpeed: 0.2,
+      rotationSpeed: 0.3,
     },
     audio: {
       script: "I am Son Goku! Defender of Earth! Let us train together and break our limits!",

@@ -250,9 +250,10 @@ async function createGlb(config) {
     const xOffset = config.xOffset || 0;
     const yOffset = config.yOffset || 0;
     const zOffset = config.zOffset || 0;
-    model.position.set(-center.x + xOffset, -box.min.y + yOffset, -center.z + zOffset);
+    model.position.set(-center.x + xOffset, -center.y + yOffset, -center.z + zOffset);
     model.scale.setScalar(autoScale);
     model.rotation.set(0, 0, 0);
+    wrapper.position.set(0, 0, 0.05);
     wrapper.add(model);
 
     wrapper.userData = {

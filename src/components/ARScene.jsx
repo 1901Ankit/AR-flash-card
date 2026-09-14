@@ -20,7 +20,7 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
   };
 
   return (
-    <div className="relative w-screen overflow-hidden bg-black" style={{ height: "100dvh" }}>
+    <div className="fixed inset-0 w-full h-[100dvh] overflow-hidden bg-black z-50">
       <CameraView ref={containerRef} />
       <MarkerTracker
         containerRef={containerRef}

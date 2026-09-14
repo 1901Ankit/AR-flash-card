@@ -1,3 +1,7 @@
+import targetMindUrl from "../assets/marker/target.mind?url";
+import dragonModelUrl from "../assets/dragon.glb?url";
+import twoModelUrl from "../assets/2.glb?url";
+
 /**
  * AI Automated Generation Service
  * Autonomous generation of Flashcards, Game Packaging Boxes, and Storybooks.
@@ -13,7 +17,7 @@ const PRESET_TOPIC_TEMPLATES = {
       imagePreview: "https://images.unsplash.com/photo-1570481662006-a3a1374699e8?w=600&auto=format&fit=crop&q=80",
       audioScript: "Roaaar! I am the Tyrannosaurus Rex! My bite force was over 12,000 pounds, making me the supreme predator of the prehistoric world!",
       modelType: "glb",
-      modelUrl: "https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Duck/glTF-Binary/Duck.glb",
+      modelUrl: twoModelUrl || dragonModelUrl,
       quiz: {
         question: "During which geological period did the T-Rex live?",
         options: ["Jurassic", "Cretaceous", "Triassic", "Devonian"],
@@ -135,7 +139,7 @@ export async function generateAIARExperience({
     tagline,
     description,
     markerPreview,
-    markerUrl: null, // Will use selected marker target or newly generated
+    markerUrl: targetMindUrl,
     model: modelConfig,
     audio: {
       script: audioScript,
