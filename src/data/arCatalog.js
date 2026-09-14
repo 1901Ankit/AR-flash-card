@@ -3,6 +3,8 @@ import target1MindUrl from "../assets/marker/target1.mind?url";
 import gokuModelUrl from "../assets/goku.glb?url";
 import dragonModelUrl from "../assets/dragon.glb?url";
 import twoModelUrl from "../assets/2.glb?url";
+import gokuMarkerImg from "../assets/goku.png";
+import dragonMarkerImg from "../assets/dragon.jpg";
 
 export const CATEGORIES = [
   { id: "all", label: "All Items", icon: "Sparkles" },
@@ -20,7 +22,7 @@ export const INITIAL_CATALOG = [
     tagline: "Legendary Warrior Flashcard",
     description: "Scan the card to summon Goku in full 3D with interactive battle voice lines and energy aura.",
     markerUrl: targetMindUrl,
-    markerPreview: "https://images.unsplash.com/photo-1578632767115-351597cf2477?w=600&auto=format&fit=crop&q=80",
+    markerPreview: gokuMarkerImg,
     model: {
       type: "glb",
       url: gokuModelUrl,
@@ -54,7 +56,7 @@ export const INITIAL_CATALOG = [
     tagline: "Mythical Creature Series",
     description: "Summon the legendary Fire Dragon hovering right above the physical card with fire roar audio.",
     markerUrl: target1MindUrl,
-    markerPreview: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=600&auto=format&fit=crop&q=80",
+    markerPreview: dragonMarkerImg,
     model: {
       type: "glb",
       url: dragonModelUrl,

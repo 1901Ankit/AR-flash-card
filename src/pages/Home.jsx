@@ -312,7 +312,7 @@ export default function Home() {
         </div>
 
         {/* Catalog Items Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {filteredItems.map((item) => {
             const isSelected = selectedItem.id === item.id;
             return (
