@@ -1,25 +1,32 @@
 import * as THREE from "three";
 
-function createCube({ scale = 0.3 } = {}) {
+function createCube({ scale = 0.35, targetHeight } = {}) {
+  const finalScale = targetHeight ? targetHeight * 0.5 : scale;
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial({
-    color: 0x5eead4,
-    metalness: 0.3,
-    roughness: 0.3,
-    wireframe: false,
+    color: 0x8b5cf6,
+    emissive: 0x3b82f6,
+    emissiveIntensity: 0.3,
+    metalness: 0.4,
+    roughness: 0.2,
   });
   const cube = new THREE.Mesh(geometry, material);
-  cube.position.set(0, 0.5, 0);
-  cube.scale.setScalar(scale);
+  cube.position.set(0, 0, 0);
+  cube.scale.setScalar(finalScale);
   cube.userData.isAnimatedCube = true;
-  return cube;
+
+  const wrapper = new THREE.Group();
+  // Elevate slightly above the card surface along Z
+  wrapper.position.set(0, 0, 0.25);
+  wrapper.add(cube);
+  return wrapper;
 }
 
 function createProceduralArena(config = {}) {
   const group = new THREE.Group();
 
   // Base holographic platform
-  const baseGeo = new THREE.CylinderGeometry(0.8, 0.9, 0.08, 32);
+  const baseGeo = new THREE.CylinderGeometry(0.7, 0.75, 0.06, 32);
   const baseMat = new THREE.MeshStandardMaterial({
     color: 0x0f172a,
     emissive: 0x06b6d4,
@@ -28,48 +35,47 @@ function createProceduralArena(config = {}) {
     metalness: 0.8,
   });
   const base = new THREE.Mesh(baseGeo, baseMat);
-  base.position.y = 0.04;
+  base.rotation.x = Math.PI / 2.5;
   group.add(base);
 
   // Hologram outer ring
-  const ringGeo = new THREE.TorusGeometry(0.75, 0.02, 16, 64);
+  const ringGeo = new THREE.TorusGeometry(0.65, 0.02, 16, 64);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
   const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI / 2;
-  ring.position.y = 0.1;
+  ring.rotation.x = Math.PI / 2.5;
   group.add(ring);
 
   // Inner pulsing grid
-  const gridHelper = new THREE.GridHelper(1.2, 8, 0x5eead4, 0x3b82f6);
-  gridHelper.position.y = 0.09;
+  const gridHelper = new THREE.GridHelper(1.0, 8, 0x5eead4, 0x3b82f6);
+  gridHelper.rotation.x = Math.PI / 2.5;
   group.add(gridHelper);
 
   // Hologram core crystal
-  const coreGeo = new THREE.OctahedronGeometry(0.28, 0);
+  const coreGeo = new THREE.OctahedronGeometry(0.24, 0);
   const coreMat = new THREE.MeshStandardMaterial({
     color: 0x8b5cf6,
     emissive: 0xa855f7,
     emissiveIntensity: 0.8,
     roughness: 0.1,
     metalness: 0.9,
-    wireframe: false,
   });
   const core = new THREE.Mesh(coreGeo, coreMat);
-  core.position.y = 0.45;
+  core.position.set(0, 0, 0.15);
   group.add(core);
 
   // Floating orbit particles
   const orbitGroup = new THREE.Group();
+  orbitGroup.position.set(0, 0, 0.15);
   for (let i = 0; i < 4; i++) {
     const angle = (i / 4) * Math.PI * 2;
-    const pGeo = new THREE.TetrahedronGeometry(0.08, 0);
+    const pGeo = new THREE.TetrahedronGeometry(0.06, 0);
     const pMat = new THREE.MeshStandardMaterial({
       color: 0x5eead4,
       emissive: 0x2dd4bf,
       emissiveIntensity: 0.9,
     });
     const p = new THREE.Mesh(pGeo, pMat);
-    p.position.set(Math.cos(angle) * 0.5, 0.4, Math.sin(angle) * 0.5);
+    p.position.set(Math.cos(angle) * 0.45, Math.sin(angle) * 0.45, 0);
     orbitGroup.add(p);
   }
   group.add(orbitGroup);
@@ -83,15 +89,21 @@ function createProceduralArena(config = {}) {
     speed: config.rotationSpeed || 0.6,
   };
 
-  group.scale.setScalar(config.targetHeight ? config.targetHeight * 0.8 : 1.0);
-  return group;
+  const scale = config.targetHeight ? config.targetHeight * 0.85 : 0.6;
+  group.scale.setScalar(scale);
+
+  const wrapper = new THREE.Group();
+  // Position centered on card and elevated in front (Z > 0)
+  wrapper.position.set(0, 0, 0.2);
+  wrapper.add(group);
+  return wrapper;
 }
 
 function createProceduralPortal(config = {}) {
   const group = new THREE.Group();
 
   // Outer magical arch / ring
-  const ringGeo = new THREE.TorusGeometry(0.65, 0.06, 16, 48);
+  const ringGeo = new THREE.TorusGeometry(0.55, 0.05, 16, 48);
   const ringMat = new THREE.MeshStandardMaterial({
     color: 0x10b981,
     emissive: 0x059669,
@@ -99,11 +111,10 @@ function createProceduralPortal(config = {}) {
     roughness: 0.3,
   });
   const arch = new THREE.Mesh(ringGeo, ringMat);
-  arch.position.y = 0.65;
   group.add(arch);
 
   // Inner energy portal vortex
-  const vortexGeo = new THREE.CircleGeometry(0.58, 32);
+  const vortexGeo = new THREE.CircleGeometry(0.48, 32);
   const vortexMat = new THREE.MeshBasicMaterial({
     color: 0x34d399,
     wireframe: true,
@@ -112,25 +123,25 @@ function createProceduralPortal(config = {}) {
     side: THREE.DoubleSide,
   });
   const vortex = new THREE.Mesh(vortexGeo, vortexMat);
-  vortex.position.y = 0.65;
   group.add(vortex);
 
-  // Pedestal
-  const pedGeo = new THREE.CylinderGeometry(0.5, 0.6, 0.12, 16);
+  // Pedestal at bottom
+  const pedGeo = new THREE.CylinderGeometry(0.4, 0.5, 0.1, 16);
   const pedMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
   const ped = new THREE.Mesh(pedGeo, pedMat);
-  ped.position.y = 0.06;
+  ped.rotation.x = Math.PI / 2;
+  ped.position.set(0, -0.5, -0.05);
   group.add(ped);
 
   // Magic floating sparks
   const sparkGroup = new THREE.Group();
   for (let i = 0; i < 6; i++) {
-    const sGeo = new THREE.DodecahedronGeometry(0.05);
+    const sGeo = new THREE.DodecahedronGeometry(0.04);
     const sMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
     const s = new THREE.Mesh(sGeo, sMat);
-    const rad = 0.4 + Math.random() * 0.3;
+    const rad = 0.35 + Math.random() * 0.25;
     const ang = (i / 6) * Math.PI * 2;
-    s.position.set(Math.cos(ang) * rad, 0.3 + Math.random() * 0.6, Math.sin(ang) * rad);
+    s.position.set(Math.cos(ang) * rad, Math.sin(ang) * rad, (Math.random() - 0.5) * 0.2);
     sparkGroup.add(s);
   }
   group.add(sparkGroup);
@@ -143,28 +154,32 @@ function createProceduralPortal(config = {}) {
     speed: config.rotationSpeed || 0.5,
   };
 
-  group.scale.setScalar(config.targetHeight ? config.targetHeight * 0.8 : 1.0);
-  return group;
+  const scale = config.targetHeight ? config.targetHeight * 0.9 : 0.65;
+  group.scale.setScalar(scale);
+
+  const wrapper = new THREE.Group();
+  wrapper.position.set(0, 0, 0.2);
+  wrapper.add(group);
+  return wrapper;
 }
 
 function createProceduralSolar(config = {}) {
   const group = new THREE.Group();
 
-  // Planet body
-  const planetGeo = new THREE.SphereGeometry(0.4, 32, 32);
+  // Planet body centered at (0, 0, 0)
+  const planetGeo = new THREE.SphereGeometry(0.35, 32, 32);
   const planetMat = new THREE.MeshStandardMaterial({
     color: 0xf59e0b,
     roughness: 0.6,
     metalness: 0.1,
     emissive: 0xb45309,
-    emissiveIntensity: 0.2,
+    emissiveIntensity: 0.25,
   });
   const planet = new THREE.Mesh(planetGeo, planetMat);
-  planet.position.y = 0.55;
   group.add(planet);
 
   // Planet rings
-  const ringGeo = new THREE.RingGeometry(0.52, 0.85, 32);
+  const ringGeo = new THREE.RingGeometry(0.45, 0.75, 32);
   const ringMat = new THREE.MeshStandardMaterial({
     color: 0xd97706,
     side: THREE.DoubleSide,
@@ -172,18 +187,18 @@ function createProceduralSolar(config = {}) {
     opacity: 0.85,
   });
   const ring = new THREE.Mesh(ringGeo, ringMat);
-  ring.rotation.x = Math.PI / 2.3;
-  ring.position.y = 0.55;
+  ring.rotation.x = Math.PI / 3;
   group.add(ring);
 
   // Orbiting Moons
   const moonGroup = new THREE.Group();
   for (let i = 0; i < 3; i++) {
-    const mGeo = new THREE.SphereGeometry(0.06, 16, 16);
+    const mGeo = new THREE.SphereGeometry(0.05, 16, 16);
     const mMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0 });
     const moon = new THREE.Mesh(mGeo, mMat);
-    const dist = 1.0 + i * 0.25;
-    moon.position.set(dist, 0.55, 0);
+    const dist = 0.85 + i * 0.2;
+    const ang = (i / 3) * Math.PI * 2;
+    moon.position.set(Math.cos(ang) * dist, Math.sin(ang) * dist * 0.6, Math.sin(ang) * 0.3);
     moonGroup.add(moon);
   }
   group.add(moonGroup);
@@ -197,8 +212,13 @@ function createProceduralSolar(config = {}) {
     speed: config.rotationSpeed || 0.6,
   };
 
-  group.scale.setScalar(config.targetHeight ? config.targetHeight * 0.8 : 1.0);
-  return group;
+  const scale = config.targetHeight ? config.targetHeight * 0.85 : 0.6;
+  group.scale.setScalar(scale);
+
+  const wrapper = new THREE.Group();
+  wrapper.position.set(0, 0, 0.2);
+  wrapper.add(group);
+  return wrapper;
 }
 
 async function createGlb(config) {
@@ -229,31 +249,50 @@ async function createGlb(config) {
       });
     }
 
-    const targetHeight = config.targetHeight ?? 0.6;
+    // Apply optional initial rotation config if needed
+    if (config.rotationX) model.rotation.x = config.rotationX;
+    if (config.rotationY) model.rotation.y = config.rotationY;
+    if (config.rotationZ) model.rotation.z = config.rotationZ;
+
+    // Reset transformations for accurate bounding box measurement
     model.updateMatrixWorld(true);
 
-    const box = new THREE.Box3().setFromObject(model);
+    const initialBox = new THREE.Box3().setFromObject(model);
     const size = new THREE.Vector3();
-    box.getSize(size);
+    initialBox.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
-    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.6);
 
-    // Apply scale to model
+    const targetHeight = config.targetHeight ?? 0.65;
+    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.65);
+
+    // Apply uniform scale
     model.scale.setScalar(autoScale);
     model.updateMatrixWorld(true);
 
-    // Compute scaled center and align to anchor center
+    // Compute final scaled bounding box
     const scaledBox = new THREE.Box3().setFromObject(model);
     const scaledCenter = new THREE.Vector3();
     scaledBox.getCenter(scaledCenter);
+    const scaledSize = new THREE.Vector3();
+    scaledBox.getSize(scaledSize);
 
     const xOffset = config.xOffset || 0;
     const yOffset = config.yOffset || 0;
     const zOffset = config.zOffset || 0;
-    model.position.set(-scaledCenter.x + xOffset, -scaledCenter.y + yOffset, -scaledCenter.z + zOffset);
+
+    // Position model so:
+    // 1. X is perfectly centered (0)
+    // 2. Y is centered (0) + optional offset
+    // 3. Z sits completely in front of the marker plane (no clipping behind card)
+    const zBaseOffset = -scaledBox.min.z + 0.05;
+
+    model.position.set(
+      -scaledCenter.x + xOffset,
+      -scaledCenter.y + yOffset,
+      zBaseOffset + zOffset
+    );
 
     const wrapper = new THREE.Group();
-    wrapper.position.set(0, 0, 0.05);
     wrapper.add(model);
 
     wrapper.userData = {
@@ -308,14 +347,14 @@ export function animateModel(object, deltaSeconds) {
         core.rotation.y += deltaSeconds * 1.4;
         core.rotation.x += deltaSeconds * 0.8;
       }
-      if (orbitGroup) orbitGroup.rotation.y -= deltaSeconds * 1.8;
+      if (orbitGroup) orbitGroup.rotation.z -= deltaSeconds * 1.5;
       if (ring) ring.rotation.z += deltaSeconds * 0.5;
     } else if (type === "portal") {
       if (vortex) vortex.rotation.z += deltaSeconds * 2.0;
-      if (sparkGroup) sparkGroup.rotation.y += deltaSeconds * 0.8;
+      if (sparkGroup) sparkGroup.rotation.z += deltaSeconds * 0.8;
     } else if (type === "solar") {
       if (planet) planet.rotation.y += deltaSeconds * 0.9;
-      if (moonGroup) moonGroup.rotation.y += deltaSeconds * 0.6;
+      if (moonGroup) moonGroup.rotation.z += deltaSeconds * 0.6;
     }
   }
 }
