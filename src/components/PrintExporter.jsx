@@ -251,7 +251,7 @@ export default function PrintExporter({ item, onClose }) {
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Automated CMYK 300 DPI Export Ready
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="flex items-center gap-3 w-full sm:w-auto whitespace-nowrap">
             <button
               onClick={handlePrint}
               className="flex-1 sm:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white text-sm font-medium transition-all"
@@ -271,7 +271,7 @@ export default function PrintExporter({ item, onClose }) {
               ) : (
                 <>
                   <Download className="w-4 h-4 text-white" />
-                  <span>Download Card / Image</span>
+                  <span>Download Card</span>
                 </>
               )}
             </button>
