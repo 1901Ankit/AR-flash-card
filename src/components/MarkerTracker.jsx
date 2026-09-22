@@ -3,10 +3,6 @@ import { MindARThree } from "mind-ar/dist/mindar-image-three.prod.js";
 import * as THREE from "three";
 import { buildModel, animateModel } from "./ModelViewer";
 import { matchHotspotKey } from "../data/arCatalog";
-
-// Default root scale for the 3D model. The glb is already normalized to
-// modelConfig.targetHeight inside createGlb, so 1.0 reproduces the intended
-// size. Scale +/- multiplies from THIS baseline (window.__arScaleMult).
 const MODEL_BASE_SCALE = 1.0;
 
 export default function MarkerTracker({
@@ -29,7 +25,6 @@ export default function MarkerTracker({
   const videoRef = useRef(null);
   const clearHighlightRef = useRef(null);
 
-  // Clear the 3D highlight when the selection is cleared from the UI
   useEffect(() => {
     if (selectedKey == null) clearHighlightRef.current?.();
   }, [selectedKey]);
@@ -40,7 +35,7 @@ export default function MarkerTracker({
     let isCancelled = false;
     let mindarThree = null;
     let modelObject = null;
-    let videoStates = []; // card-video targets: { el, tex, ...smoothState }
+    let videoStates = []; 
     let downHandler = null;
     let upHandler = null;
     let cancelHandlerRef = () => {
@@ -119,12 +114,11 @@ export default function MarkerTracker({
       hardStop(mindarThree);
       stopAllCameraTracks();
 
-      // Release card video overlays
       videoStates.forEach((s) => {
         s.el?.pause();
         s.el?.removeAttribute("src");
         s.el?.load();
-        s.el?.remove(); // detach the off-screen DOM element
+        s.el?.remove(); 
         s.tex?.dispose();
       });
       videoStates = [];
@@ -133,7 +127,6 @@ export default function MarkerTracker({
       mindarRef.current = null;
       window.__arCurrentModel = null;
 
-      // Specifically remove the MindAR video element using stored reference
       if (videoRef.current) {
         console.log("[MarkerTracker] Removing stored video element");
         videoRef.current.pause();
@@ -142,7 +135,6 @@ export default function MarkerTracker({
         videoRef.current = null;
       }
 
-      // Also remove any remaining video elements & MindAR injected overlays
       document.querySelectorAll("video").forEach((video) => {
         video.pause();
         video.srcObject = null;
@@ -176,7 +168,6 @@ export default function MarkerTracker({
       const { renderer, scene, camera } = mindarThree;
       renderer.setClearColor(0x000000, 0);
 
-      // Balanced natural lighting setup (preserves true texture colors and prevents white washout)
       const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
       const mainLight = new THREE.DirectionalLight(0xffffff, 0.65);
       mainLight.position.set(1, 2, 2);
@@ -184,15 +175,11 @@ export default function MarkerTracker({
       fillLight.position.set(-1, -1, 1);
       scene.add(ambientLight, mainLight, fillLight);
 
-      // --- Content map: which content renders on which target index ---
-      // Driven by item.targets — to add a video card later, compile the new
-      // card image into the .mind file and add e.g.
-      //   { targetIndex: 1, type: "video", src: "/card-video.mp4", aspect: 1.5 }
+
       const targetDefs = targets?.length
         ? targets
         : [{ targetIndex: 0, type: "model" }];
 
-      // Per-target smoothed-pose states — the render loop smooths each one
       const smoothStates = [];
       const newSmoothState = (a, group) => {
         const s = {
@@ -208,7 +195,6 @@ export default function MarkerTracker({
         return s;
       };
 
-      // MODEL target — solar.glb + planet interaction
       const modelDef = targetDefs.find((t) => t.type === "model");
       let anchor = null;
       let modelState = null;
@@ -221,15 +207,10 @@ export default function MarkerTracker({
           return;
         }
 
-        // Explicit default scale baseline (see MODEL_BASE_SCALE above)
-        modelObject.scale.setScalar(MODEL_BASE_SCALE);
+      modelObject.scale.setScalar(MODEL_BASE_SCALE);
         window.__arBaseScale = MODEL_BASE_SCALE;
         window.__arScaleMult = 1;
 
-        // Smoothed pose: model lives in a scene-level group so its world pose
-        // is EXACTLY the smoothed pose S — zero raw jitter passes through.
-        // Visibility is driven by found/lost callbacks (with a grace period)
-        // since anchor.group.visible is not reliable in this MindAR build.
         const smoothGroup = new THREE.Group();
         smoothGroup.visible = false;
         scene.add(smoothGroup);
@@ -238,9 +219,6 @@ export default function MarkerTracker({
         window.__arCurrentModel = modelObject;
       }
 
-      // VIDEO targets — one video plane per configured target index, flush on
-      // that card's surface. NOT under modelObject → planet raycasts can never
-      // hit them. (None configured yet → nothing mounts on the solar card.)
       let videoExplicitMuted = false;
       let videoGestureUnlocked = false;
       let firstVideoEl = null;
@@ -248,7 +226,6 @@ export default function MarkerTracker({
         const p = el.play();
         if (p?.then) {
           p.then(() => onVideoNeedsGesture?.(false)).catch(() => {
-            // Autoplay blocked — ask the UI to show "Tap to play video"
             onVideoNeedsGesture?.(true);
           });
         }
@@ -260,27 +237,29 @@ export default function MarkerTracker({
           const vAnchor = mindarThree.addAnchor(def.targetIndex);
           const el = document.createElement("video");
           el.src = def.src;
-          el.muted = true; // required for autoplay on mobile
-          el.setAttribute("muted", ""); // iOS needs the attribute too
+          el.muted = true; 
+          el.setAttribute("muted", ""); 
           el.playsInline = true;
           el.setAttribute("playsinline", "");
           el.setAttribute("webkit-playsinline", "");
           el.loop = def.loop !== false;
           el.preload = "auto";
-          // Keep the element in the DOM but invisible — some browsers skip
-          // decoding frames for detached/display:none videos (audio still
-          // plays but the VideoTexture stays black)
           el.style.cssText =
             "position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
           containerRef.current?.appendChild(el);
 
+          el.addEventListener("error", () => {
+            console.error(
+              "[MarkerTracker] card-video element error:",
+              el.error?.code,
+              el.error?.message
+            );
+          });
+
           const tex = new THREE.VideoTexture(el);
-          tex.encoding = THREE.sRGBEncoding; // three r151 API
+          tex.encoding = THREE.sRGBEncoding; 
           tex.minFilter = THREE.LinearFilter;
           tex.generateMipmaps = false;
-
-          // MindAR normalizes target width to 1 unit — plane width 1 spans the
-          // card exactly; height comes from the card's aspect ratio
           const aspect = def.aspect || 1.5;
           const plane = new THREE.Mesh(
             new THREE.PlaneGeometry(1, 1 / aspect),
@@ -292,10 +271,8 @@ export default function MarkerTracker({
             })
           );
           plane.renderOrder = -1;
-          plane.position.z = 0.001; // hair above the card — no z-fighting
+          plane.position.z = 0.001; 
 
-          // fit: "cover" — crop video UVs so it fills the card edge-to-edge
-          // (no letterboxing). repeat<1 on the axis that needs cropping.
           if ((def.fit || "cover") === "cover") {
             const applyCoverFit = () => {
               const vw = el.videoWidth;
@@ -342,10 +319,22 @@ export default function MarkerTracker({
                 videoHeight: el.videoHeight,
                 paused: el.paused,
                 currentTime: +el.currentTime.toFixed(2),
+                networkState: el.networkState,
+                error: el.error?.code ?? null,
                 texImageIsEl: tex.image === el,
+                planeVisible: vGroup.visible,
               });
             logVideo("target-found");
-            setTimeout(() => logVideo("+1s"), 1000);
+            setTimeout(() => {
+              logVideo("+1s");
+              if (!el.paused && el.videoWidth === 0) {
+                console.warn(
+                  "[MarkerTracker] AUDIO PLAYS BUT VIDEO TRACK IS NOT DECODING " +
+                    "(videoWidth=0) — codec unsupported by this browser. " +
+                    "Re-encode: ffmpeg -i jiraiya.mp4 -c:v libx264 -profile:v main -pix_fmt yuv420p -c:a aac jiraiya-h264.mp4"
+                );
+              }
+            }, 1000);
           };
           vAnchor.onTargetLost = () => {
             if (!state.found) return;
