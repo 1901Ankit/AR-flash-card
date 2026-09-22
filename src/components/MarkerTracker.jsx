@@ -4,13 +4,18 @@ import * as THREE from "three";
 import { buildModel, animateModel } from "./ModelViewer";
 import { matchHotspotKey } from "../data/arCatalog";
 
+// Default root scale for the 3D model. The glb is already normalized to
+// modelConfig.targetHeight inside createGlb, so 1.0 reproduces the intended
+// size. Scale +/- multiplies from THIS baseline (window.__arScaleMult).
+const MODEL_BASE_SCALE = 1.0;
+
 export default function MarkerTracker({
   containerRef,
   imageTargetSrc,
   modelConfig,
   hotspots,
   selectedKey,
-  cardVideo,
+  targets,
   videoControlRef,
   onVideoMutedChange,
   onVideoNeedsGesture,
@@ -35,8 +40,7 @@ export default function MarkerTracker({
     let isCancelled = false;
     let mindarThree = null;
     let modelObject = null;
-    let cardVideoEl = null;
-    let cardVideoTexture = null;
+    let videoStates = []; // card-video targets: { el, tex, ...smoothState }
     let downHandler = null;
     let upHandler = null;
     let cancelHandlerRef = () => {
@@ -115,18 +119,15 @@ export default function MarkerTracker({
       hardStop(mindarThree);
       stopAllCameraTracks();
 
-      // Release the card video overlay (element is never in the DOM, so the
-      // querySelectorAll sweep below won't catch it)
-      if (cardVideoEl) {
-        cardVideoEl.pause();
-        cardVideoEl.removeAttribute("src");
-        cardVideoEl.load();
-        cardVideoEl = null;
-      }
-      if (cardVideoTexture) {
-        cardVideoTexture.dispose();
-        cardVideoTexture = null;
-      }
+      // Release card video overlays (elements are never in the DOM, so the
+      // querySelectorAll sweep below won't catch them)
+      videoStates.forEach((s) => {
+        s.el?.pause();
+        s.el?.removeAttribute("src");
+        s.el?.load();
+        s.tex?.dispose();
+      });
+      videoStates = [];
       if (videoControlRef) videoControlRef.current = null;
 
       mindarRef.current = null;
@@ -183,94 +184,185 @@ export default function MarkerTracker({
       fillLight.position.set(-1, -1, 1);
       scene.add(ambientLight, mainLight, fillLight);
 
-      const anchor = mindarThree.addAnchor(0);
-      modelObject = await buildModel(modelConfig);
+      // --- Content map: which content renders on which target index ---
+      // Driven by item.targets — to add a video card later, compile the new
+      // card image into the .mind file and add e.g.
+      //   { targetIndex: 1, type: "video", src: "/card-video.mp4", aspect: 1.5 }
+      const targetDefs = targets?.length
+        ? targets
+        : [{ targetIndex: 0, type: "model" }];
 
-      if (isCancelled) {
-        hardStop(mindarThree);
-        return;
+      // Per-target smoothed-pose states — the render loop smooths each one
+      const smoothStates = [];
+      const newSmoothState = (a, group) => {
+        const s = {
+          anchor: a,
+          group,
+          found: false,
+          lastSeenAt: 0,
+          poseInit: false,
+          smPos: new THREE.Vector3(),
+          smQuat: new THREE.Quaternion(),
+        };
+        smoothStates.push(s);
+        return s;
+      };
+
+      // MODEL target — solar.glb + planet interaction
+      const modelDef = targetDefs.find((t) => t.type === "model");
+      let anchor = null;
+      let modelState = null;
+      if (modelDef) {
+        anchor = mindarThree.addAnchor(modelDef.targetIndex ?? 0);
+        modelObject = await buildModel(modelConfig);
+
+        if (isCancelled) {
+          hardStop(mindarThree);
+          return;
+        }
+
+        // Explicit default scale baseline (see MODEL_BASE_SCALE above)
+        modelObject.scale.setScalar(MODEL_BASE_SCALE);
+        window.__arBaseScale = MODEL_BASE_SCALE;
+        window.__arScaleMult = 1;
+
+        // Smoothed pose: model lives in a scene-level group so its world pose
+        // is EXACTLY the smoothed pose S — zero raw jitter passes through.
+        // Visibility is driven by found/lost callbacks (with a grace period)
+        // since anchor.group.visible is not reliable in this MindAR build.
+        const smoothGroup = new THREE.Group();
+        smoothGroup.visible = false;
+        scene.add(smoothGroup);
+        smoothGroup.add(modelObject);
+        modelState = newSmoothState(anchor, smoothGroup);
+        window.__arCurrentModel = modelObject;
       }
 
-      // Smoothed pose: model lives in smoothGroup at scene level, so its world
-      // pose is EXACTLY the smoothed pose S — zero raw jitter passes through.
-      // Visibility is driven by the anchor found/lost callbacks (with a grace
-      // period) since anchor.group.visible is not reliable in this MindAR build.
-      const smoothGroup = new THREE.Group();
-      smoothGroup.visible = false;
-      scene.add(smoothGroup);
-      smoothGroup.add(modelObject);
-      window.__arCurrentModel = modelObject;
-
-      // --- Card video overlay: plane flush on the tracked card surface ---
-      // Lives in smoothGroup → inherits the same smoothed anchor pose as the
-      // model. NOT under modelObject → planet raycasts can never hit it.
+      // VIDEO targets — one video plane per configured target index, flush on
+      // that card's surface. NOT under modelObject → planet raycasts can never
+      // hit them. (None configured yet → nothing mounts on the solar card.)
       let videoExplicitMuted = false;
       let videoGestureUnlocked = false;
-      let tryPlayVideo = null;
-
-      if (cardVideo?.url) {
-        cardVideoEl = document.createElement("video");
-        cardVideoEl.src = cardVideo.url;
-        cardVideoEl.muted = true; // required for autoplay on mobile
-        cardVideoEl.playsInline = true;
-        cardVideoEl.setAttribute("playsinline", "");
-        cardVideoEl.setAttribute("webkit-playsinline", "");
-        cardVideoEl.loop = cardVideo.loop !== false;
-        cardVideoEl.preload = "auto";
-
-        cardVideoTexture = new THREE.VideoTexture(cardVideoEl);
-        cardVideoTexture.encoding = THREE.sRGBEncoding; // three r151 API
-        cardVideoTexture.minFilter = THREE.LinearFilter;
-        cardVideoTexture.generateMipmaps = false;
-
-        // MindAR normalizes the target image width to 1 unit — plane width 1
-        // spans the card exactly; height comes from the card's aspect ratio
-        const aspect = cardVideo.aspect || 1.5; // card width / height
-        const videoPlane = new THREE.Mesh(
-          new THREE.PlaneGeometry(1, 1 / aspect),
-          new THREE.MeshBasicMaterial({
-            map: cardVideoTexture,
-            toneMapped: false,
-            depthWrite: false, // never occludes the model floating above
-          })
-        );
-        videoPlane.renderOrder = -1; // draw first, behind the model
-        videoPlane.position.z = 0.001; // hair above the card — no z-fighting
-        smoothGroup.add(videoPlane);
-
-        tryPlayVideo = () => {
-          const p = cardVideoEl.play();
-          if (p?.then) {
-            p.then(() => onVideoNeedsGesture?.(false)).catch(() => {
-              // Autoplay blocked — ask the UI to show "Tap to play video"
-              onVideoNeedsGesture?.(true);
-            });
-          }
-        };
-
-        if (videoControlRef) {
-          videoControlRef.current = {
-            play: () => tryPlayVideo(),
-            toggleMute: () => {
-              cardVideoEl.muted = !cardVideoEl.muted;
-              videoExplicitMuted = cardVideoEl.muted; // explicit user choice
-              onVideoMutedChange?.(cardVideoEl.muted);
-              return cardVideoEl.muted;
-            },
-          };
+      let firstVideoEl = null;
+      const tryPlayVideo = (el) => {
+        const p = el.play();
+        if (p?.then) {
+          p.then(() => onVideoNeedsGesture?.(false)).catch(() => {
+            // Autoplay blocked — ask the UI to show "Tap to play video"
+            onVideoNeedsGesture?.(true);
+          });
         }
+      };
+
+      targetDefs
+        .filter((t) => t.type === "video" && t.src)
+        .forEach((def) => {
+          const vAnchor = mindarThree.addAnchor(def.targetIndex);
+          const el = document.createElement("video");
+          el.src = def.src;
+          el.muted = true; // required for autoplay on mobile
+          el.playsInline = true;
+          el.setAttribute("playsinline", "");
+          el.setAttribute("webkit-playsinline", "");
+          el.loop = def.loop !== false;
+          el.preload = "auto";
+
+          const tex = new THREE.VideoTexture(el);
+          tex.encoding = THREE.sRGBEncoding; // three r151 API
+          tex.minFilter = THREE.LinearFilter;
+          tex.generateMipmaps = false;
+
+          // MindAR normalizes target width to 1 unit — plane width 1 spans the
+          // card exactly; height comes from the card's aspect ratio
+          const aspect = def.aspect || 1.5;
+          const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(1, 1 / aspect),
+            new THREE.MeshBasicMaterial({
+              map: tex,
+              toneMapped: false,
+              depthWrite: false, // never occludes other content
+            })
+          );
+          plane.renderOrder = -1;
+          plane.position.z = 0.001; // hair above the card — no z-fighting
+
+          // fit: "cover" — crop video UVs so it fills the card edge-to-edge
+          // (no letterboxing). repeat<1 on the axis that needs cropping.
+          if ((def.fit || "cover") === "cover") {
+            const applyCoverFit = () => {
+              const vw = el.videoWidth;
+              const vh = el.videoHeight;
+              if (!vw || !vh) return;
+              const videoAspect = vw / vh;
+              if (videoAspect > aspect) {
+                tex.repeat.set(aspect / videoAspect, 1); // crop left/right
+              } else {
+                tex.repeat.set(1, videoAspect / aspect); // crop top/bottom
+              }
+              tex.offset.set(
+                (1 - tex.repeat.x) / 2,
+                (1 - tex.repeat.y) / 2
+              );
+            };
+            if (el.readyState >= 1) applyCoverFit();
+            else {
+              el.addEventListener("loadedmetadata", applyCoverFit, {
+                once: true,
+              });
+            }
+          }
+
+          const vGroup = new THREE.Group();
+          vGroup.visible = false;
+          scene.add(vGroup);
+          vGroup.add(plane);
+
+          const state = newSmoothState(vAnchor, vGroup);
+          state.el = el;
+          state.tex = tex;
+          videoStates.push(state);
+
+          vAnchor.onTargetFound = () => {
+            if (state.found) return;
+            state.found = true;
+            if (def.autoplay !== false) tryPlayVideo(el); // resume — currentTime never reset
+          };
+          vAnchor.onTargetLost = () => {
+            if (!state.found) return;
+            state.found = false;
+            state.lastSeenAt = performance.now();
+            el.pause(); // pause only — resumes from same spot on reacquire
+          };
+
+          if (!firstVideoEl) firstVideoEl = el;
+        });
+
+      if (videoControlRef) {
+        videoControlRef.current = firstVideoEl
+          ? {
+              play: () => tryPlayVideo(firstVideoEl),
+              toggleMute: () => {
+                firstVideoEl.muted = !firstVideoEl.muted;
+                videoExplicitMuted = firstVideoEl.muted; // explicit user choice
+                onVideoMutedChange?.(firstVideoEl.muted);
+                return firstVideoEl.muted;
+              },
+            }
+          : null;
       }
 
       // Log every node name so hotspot keys can be verified against the GLB
-      const nodeNames = [];
-      modelObject.traverse((child) => {
-        if (child.name) nodeNames.push(child.name);
-      });
-      console.log("[MarkerTracker] Model node names:", nodeNames);
+      if (modelObject) {
+        const nodeNames = [];
+        modelObject.traverse((child) => {
+          if (child.name) nodeNames.push(child.name);
+        });
+        console.log("[MarkerTracker] Model node names:", nodeNames);
+      }
 
       // --- Planet registry: top-level named nodes matching hotspot keys ---
       const planetRegistry = [];
-      if (hotspots) {
+      if (hotspots && modelObject) {
         const registered = new Set();
         modelObject.traverse((child) => {
           if (!child.name || registered.has(child)) return;
@@ -490,13 +582,13 @@ export default function MarkerTracker({
         // First tap on the AR surface = the browser's required user gesture:
         // unmute the card video (unless the user explicitly muted it) and
         // retry play() in case autoplay was blocked earlier.
-        if (cardVideoEl && !videoGestureUnlocked) {
+        if (firstVideoEl && !videoGestureUnlocked) {
           videoGestureUnlocked = true;
           if (!videoExplicitMuted) {
-            cardVideoEl.muted = false;
+            firstVideoEl.muted = false;
             onVideoMutedChange?.(false);
           }
-          tryPlayVideo?.();
+          tryPlayVideo(firstVideoEl);
         }
         downPos = { x: e.clientX, y: e.clientY, t: performance.now() };
       };
@@ -516,21 +608,26 @@ export default function MarkerTracker({
       tapSurface.addEventListener("pointerup", upHandler);
       tapSurface.addEventListener("pointercancel", cancelHandlerRef);
 
-      let targetFound = false;
-      let lastSeenAt = 0;
-      anchor.onTargetFound = () => {
-        if (targetFound) return;
-        targetFound = true;
-        tryPlayVideo?.(); // play/resume — currentTime is never reset
-        onTargetFound?.();
-      };
-      anchor.onTargetLost = () => {
-        if (!targetFound) return;
-        targetFound = false;
-        lastSeenAt = performance.now();
-        cardVideoEl?.pause(); // pause only — resumes from same spot on reacquire
-        onTargetLost?.();
-      };
+      if (anchor && modelState) {
+        anchor.onTargetFound = () => {
+          if (modelState.found) return;
+          modelState.found = true;
+          // Re-apply default scale baseline × current user multiplier
+          if (modelObject) {
+            modelObject.scale.setScalar(
+              (window.__arBaseScale ?? MODEL_BASE_SCALE) *
+                (window.__arScaleMult ?? 1)
+            );
+          }
+          onTargetFound?.();
+        };
+        anchor.onTargetLost = () => {
+          if (!modelState.found) return;
+          modelState.found = false;
+          modelState.lastSeenAt = performance.now();
+          onTargetLost?.();
+        };
+      }
 
       await mindarThree.start();
 
@@ -543,9 +640,6 @@ export default function MarkerTracker({
       const rawPos = new THREE.Vector3();
       const rawQuat = new THREE.Quaternion();
       const rawScale = new THREE.Vector3();
-      const smPos = new THREE.Vector3();
-      const smQuat = new THREE.Quaternion();
-      let poseInit = false;
       const POS_EPS = 0.003; // dead-zone: ignore micro position noise
       const ROT_EPS = 0.008; // dead-zone: ignore micro rotation noise (~0.5°)
       const POS_RANGE = 0.05; // delta at which tracking becomes fully responsive
@@ -555,51 +649,53 @@ export default function MarkerTracker({
 
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
+        const now = performance.now();
 
-        // Show the model while tracked, plus a short grace period so brief
-        // tracking flickers don't make it blink
-        const tracked =
-          targetFound || performance.now() - lastSeenAt < 500;
-        smoothGroup.visible = tracked;
+        // Smooth every configured target's pose (model + any video planes).
+        // Each content group is a scene root child → its local transform IS
+        // the world pose. Output = S exactly, no raw delta re-injection.
+        for (const s of smoothStates) {
+          // Show while tracked, plus a short grace period so brief tracking
+          // flickers don't make content blink
+          const tracked = s.found || now - s.lastSeenAt < 500;
+          s.group.visible = tracked;
+          if (!tracked) {
+            s.poseInit = false;
+            continue;
+          }
 
-        if (tracked) {
           // Raw world pose P written by MindAR (matrixWorld is always populated,
           // regardless of whether MindAR writes .matrix or .position/.quaternion)
-          anchor.group.matrixWorld.decompose(rawPos, rawQuat, rawScale);
+          s.anchor.group.matrixWorld.decompose(rawPos, rawQuat, rawScale);
+          if (rawScale.lengthSq() <= 1e-10) continue;
 
-          if (rawScale.lengthSq() > 1e-10) {
-            if (!poseInit) {
-              smPos.copy(rawPos);
-              smQuat.copy(rawQuat);
-              poseInit = true;
-            } else {
-              // Adaptive smoothing (1€-filter style): jitter gets heavy
-              // smoothing, real card movement stays responsive
-              const dist = smPos.distanceTo(rawPos);
-              if (dist > POS_EPS) {
-                const a =
-                  MIN_ALPHA +
-                  (MAX_ALPHA - MIN_ALPHA) *
-                    Math.min(1, (dist - POS_EPS) / POS_RANGE);
-                smPos.lerp(rawPos, a);
-              }
-              const ang = smQuat.angleTo(rawQuat);
-              if (ang > ROT_EPS) {
-                const a =
-                  MIN_ALPHA +
-                  (MAX_ALPHA - MIN_ALPHA) *
-                    Math.min(1, (ang - ROT_EPS) / ROT_RANGE);
-                smQuat.slerp(rawQuat, a);
-              }
+          if (!s.poseInit) {
+            s.smPos.copy(rawPos);
+            s.smQuat.copy(rawQuat);
+            s.poseInit = true;
+          } else {
+            // Adaptive smoothing (1€-filter style): jitter gets heavy
+            // smoothing, real card movement stays responsive
+            const dist = s.smPos.distanceTo(rawPos);
+            if (dist > POS_EPS) {
+              const a =
+                MIN_ALPHA +
+                (MAX_ALPHA - MIN_ALPHA) *
+                  Math.min(1, (dist - POS_EPS) / POS_RANGE);
+              s.smPos.lerp(rawPos, a);
             }
-            // smoothGroup is a scene root child → its local transform IS the
-            // world pose. Output = S exactly, no raw delta re-injection.
-            smoothGroup.position.copy(smPos);
-            smoothGroup.quaternion.copy(smQuat);
-            smoothGroup.scale.copy(rawScale);
+            const ang = s.smQuat.angleTo(rawQuat);
+            if (ang > ROT_EPS) {
+              const a =
+                MIN_ALPHA +
+                (MAX_ALPHA - MIN_ALPHA) *
+                  Math.min(1, (ang - ROT_EPS) / ROT_RANGE);
+              s.smQuat.slerp(rawQuat, a);
+            }
           }
-        } else {
-          poseInit = false;
+          s.group.position.copy(s.smPos);
+          s.group.quaternion.copy(s.smQuat);
+          s.group.scale.copy(rawScale);
         }
 
         // Pulse the selected planet's emissive highlight (material-only, no transforms)

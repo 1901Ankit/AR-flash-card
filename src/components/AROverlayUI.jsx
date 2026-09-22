@@ -17,12 +17,27 @@ export default function AROverlayUI({
   const [showQuiz, setShowQuiz] = useState(false);
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState(null);
   const [activeStoryPage, setActiveStoryPage] = useState(0);
+  const [scaleMult, setScaleMult] = useState(1);
   const lastSpokenRef = useRef(null);
 
-  const handleScaleModel = (factor) => {
-    if (window.__arCurrentModel) {
-      window.__arCurrentModel.scale.multiplyScalar(factor);
-    }
+  const hasVideoTarget =
+    item?.targets?.some((t) => t.type === "video") || !!item?.video;
+
+  // Scale +/- adjusts a multiplier on the model's default baseline scale
+  // (window.__arBaseScale, set by MarkerTracker) — clamped so the model can
+  // never go invisible or absurdly huge
+  const SCALE_STEP = 0.1;
+  const SCALE_MIN = 0.5;
+  const SCALE_MAX = 3.0;
+  const handleScaleModel = (dir) => {
+    const next = Math.min(
+      SCALE_MAX,
+      Math.max(SCALE_MIN, +(scaleMult + dir * SCALE_STEP).toFixed(2))
+    );
+    setScaleMult(next);
+    window.__arScaleMult = next;
+    const base = window.__arBaseScale ?? 1;
+    window.__arCurrentModel?.scale.setScalar(base * next);
   };
 
   const handleRotateModel = () => {
@@ -233,30 +248,34 @@ export default function AROverlayUI({
           </div>
         )}
 
-        {/* 3D Quick Adjust Controls */}
+        {/* 3D Quick Adjust Controls — model items only; video cards get Mute */}
         <div className="flex items-center justify-center gap-2 flex-wrap">
-          <button
-            onClick={() => handleScaleModel(1.15)}
-            className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
-            title="Scale Up"
-          >
-            <Plus className="w-3.5 h-3.5 text-slate-300" /> Scale +
-          </button>
-          <button
-            onClick={() => handleScaleModel(0.85)}
-            className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
-            title="Scale Down"
-          >
-            <Minus className="w-3.5 h-3.5 text-slate-300" /> Scale -
-          </button>
-          <button
-            onClick={handleRotateModel}
-            className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
-            title="Rotate 3D Model"
-          >
-            <RotateCw className="w-3.5 h-3.5 text-slate-300" /> Rotate
-          </button>
-          {item?.cardVideo && (
+          {item?.model && (
+            <>
+              <button
+                onClick={() => handleScaleModel(1)}
+                className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+                title="Scale Up"
+              >
+                <Plus className="w-3.5 h-3.5 text-slate-300" /> Scale +
+              </button>
+              <button
+                onClick={() => handleScaleModel(-1)}
+                className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+                title="Scale Down"
+              >
+                <Minus className="w-3.5 h-3.5 text-slate-300" /> Scale -
+              </button>
+              <button
+                onClick={handleRotateModel}
+                className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+                title="Rotate 3D Model"
+              >
+                <RotateCw className="w-3.5 h-3.5 text-slate-300" /> Rotate
+              </button>
+            </>
+          )}
+          {hasVideoTarget && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -367,7 +386,7 @@ export default function AROverlayUI({
       </div>
 
       {/* Autoplay-blocked fallback: tap to start the card video */}
-      {item?.cardVideo && videoNeedsGesture && (
+      {hasVideoTarget && videoNeedsGesture && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-30">
           <button
             onClick={(e) => {

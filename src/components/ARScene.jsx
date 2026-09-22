@@ -72,6 +72,14 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
 
   const handleCloseHotspot = useCallback(() => setActiveHotspot(null), []);
 
+  // Content map for this item's marker session:
+  // - item.targets (explicit multi-target map) wins
+  // - item.video → single video plane on target index 0
+  // - otherwise MarkerTracker defaults to the 3D model on target index 0
+  const derivedTargets =
+    activeItem.targets ??
+    (activeItem.video ? [{ targetIndex: 0, ...activeItem.video }] : undefined);
+
   const handleToggleVideoMute = useCallback(() => {
     videoControlRef.current?.toggleMute();
   }, []);
@@ -99,7 +107,7 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
         onHotspotTap={handleHotspotTap}
         hotspots={activeItem.hotspots}
         selectedKey={activeHotspot ? activeHotspot.key ?? activeHotspot.title : null}
-        cardVideo={activeItem.cardVideo}
+        targets={derivedTargets}
         videoControlRef={videoControlRef}
         onVideoMutedChange={setVideoMuted}
         onVideoNeedsGesture={setVideoNeedsGesture}

@@ -4,8 +4,14 @@ import gokuModelUrl from "../assets/goku.glb?url";
 import dragonModelUrl from "../assets/dragon.glb?url";
 import twoModelUrl from "../assets/2.glb?url";
 import solarModelUrl from "../assets/solar.glb?url";
+import jiraiyaVideoUrl from "../assets/jiraiya.mp4?url";
 import gokuMarkerImg from "../assets/goku.png";
 import dragonMarkerImg from "../assets/dragon.jpg";
+
+// TODO: compile the Jiraiya card image into src/assets/marker/targetJiraiya.mind
+// (https://hiukim.github.io/mind-ar-js-doc/tools/compile) then swap this for:
+//   import targetJiraiyaMindUrl from "../assets/marker/targetJiraiya.mind?url";
+const targetJiraiyaMindUrl = target1MindUrl; // placeholder — reuses existing marker
 
 export const CATEGORIES = [
   { id: "all", label: "All Items", icon: "Sparkles" },
@@ -211,13 +217,13 @@ export const INITIAL_CATALOG = [
       targetHeight: 0.55,
       rotationSpeed: 0.5,
     },
-    // Video overlay that plays flush on the physical card surface.
-    // aspect = card width / height (MindAR normalizes card width to 1 unit).
-    cardVideo: {
-      url: "/card-video.mp4",
-      aspect: 1.5,
-      loop: true,
-    },
+    // Content map: which content renders on which MindAR target index.
+    // Add a video card later by compiling a 2nd image into the .mind file and
+    // uncommenting the video entry below.
+    targets: [
+      { targetIndex: 0, type: "model" }, // solar.glb on the current card
+      // { targetIndex: 1, type: "video", src: "/card-video.mp4", aspect: 1.5, loop: true },
+    ],
     audio: {
       script: "Welcome to the solar system! Tap any planet to hear its story.",
       pitch: 1.0,
@@ -367,6 +373,23 @@ export const INITIAL_CATALOG = [
       cardType: "digital_screen_marker",
       dimensions: "Responsive Screen Display",
       instructions: "Display on iPad or computer monitor and point phone camera.",
+    },
+  },
+  {
+    id: "jiraiya-story",
+    title: "Jiraiya — The Toad Sage",
+    category: "digital_story",
+    tagline: "Legendary Sannin Video Card",
+    description: "Scan the Jiraiya card to play his story directly on the card surface.",
+    markerUrl: targetJiraiyaMindUrl,
+    markerPreview: gokuMarkerImg, // TODO: swap for a jiraiya preview image
+    video: {
+      type: "video",
+      src: jiraiyaVideoUrl,
+      fit: "cover", // fills the card edge-to-edge, cropped — no letterboxing
+      loop: true,
+      autoplay: true, // muted autoplay on target-found (gesture rules apply)
+      aspect: 1.5, // physical card width / height — adjust to the printed card
     },
   },
 ];
