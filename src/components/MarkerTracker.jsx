@@ -119,12 +119,12 @@ export default function MarkerTracker({
       hardStop(mindarThree);
       stopAllCameraTracks();
 
-      // Release card video overlays (elements are never in the DOM, so the
-      // querySelectorAll sweep below won't catch them)
+      // Release card video overlays
       videoStates.forEach((s) => {
         s.el?.pause();
         s.el?.removeAttribute("src");
         s.el?.load();
+        s.el?.remove(); // detach the off-screen DOM element
         s.tex?.dispose();
       });
       videoStates = [];
@@ -261,11 +261,18 @@ export default function MarkerTracker({
           const el = document.createElement("video");
           el.src = def.src;
           el.muted = true; // required for autoplay on mobile
+          el.setAttribute("muted", ""); // iOS needs the attribute too
           el.playsInline = true;
           el.setAttribute("playsinline", "");
           el.setAttribute("webkit-playsinline", "");
           el.loop = def.loop !== false;
           el.preload = "auto";
+          // Keep the element in the DOM but invisible — some browsers skip
+          // decoding frames for detached/display:none videos (audio still
+          // plays but the VideoTexture stays black)
+          el.style.cssText =
+            "position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
+          containerRef.current?.appendChild(el);
 
           const tex = new THREE.VideoTexture(el);
           tex.encoding = THREE.sRGBEncoding; // three r151 API
@@ -281,6 +288,7 @@ export default function MarkerTracker({
               map: tex,
               toneMapped: false,
               depthWrite: false, // never occludes other content
+              side: THREE.DoubleSide, // visible even if the pose flips the plane
             })
           );
           plane.renderOrder = -1;
@@ -326,6 +334,18 @@ export default function MarkerTracker({
             if (state.found) return;
             state.found = true;
             if (def.autoplay !== false) tryPlayVideo(el); // resume — currentTime never reset
+            // Debug: verify decode + texture wiring (remove after confirming)
+            const logVideo = (tag) =>
+              console.log(`[MarkerTracker] card-video ${tag}:`, {
+                readyState: el.readyState,
+                videoWidth: el.videoWidth,
+                videoHeight: el.videoHeight,
+                paused: el.paused,
+                currentTime: +el.currentTime.toFixed(2),
+                texImageIsEl: tex.image === el,
+              });
+            logVideo("target-found");
+            setTimeout(() => logVideo("+1s"), 1000);
           };
           vAnchor.onTargetLost = () => {
             if (!state.found) return;
