@@ -245,7 +245,7 @@ export default function MarkerTracker({
           el.loop = def.loop !== false;
           el.preload = "auto";
           el.style.cssText =
-            "position:fixed;bottom:0;right:0;width:1px;height:1px;opacity:0;pointer-events:none;z-index:-1;";
+            "position:fixed;bottom:0;right:0;width:2px;height:2px;opacity:0.01;pointer-events:none;z-index:-1;";
           containerRef.current?.appendChild(el);
 
           el.addEventListener("error", () => {
@@ -257,21 +257,41 @@ export default function MarkerTracker({
           });
 
           const tex = new THREE.VideoTexture(el);
-          tex.encoding = THREE.sRGBEncoding; 
+          tex.encoding = THREE.sRGBEncoding;
+          // CRITICAL: video frames are usually non-power-of-2 — mipmapping
+          // makes the texture incomplete → plane renders black
           tex.minFilter = THREE.LinearFilter;
           tex.generateMipmaps = false;
+          // MindAR normalizes target width to 1 unit — plane width 1 spans the
+          // card exactly; height comes from the card's aspect ratio
           const aspect = def.aspect || 1.5;
+          // Start MAGENTA — the video texture is attached only once a frame
+          // actually decodes (videoWidth > 0). Diagnostic:
+          //   magenta rectangle on card = plane renders, codec undecodable
+          //   nothing at all            = pose/visibility issue
+          const planeMat = new THREE.MeshBasicMaterial({
+            color: 0xff00ff,
+            toneMapped: false,
+            depthWrite: false, // never occludes other content
+            side: THREE.DoubleSide, // visible even if the pose flips the plane
+          });
           const plane = new THREE.Mesh(
             new THREE.PlaneGeometry(1, 1 / aspect),
-            new THREE.MeshBasicMaterial({
-              map: tex,
-              toneMapped: false,
-              depthWrite: false, // never occludes other content
-              side: THREE.DoubleSide, // visible even if the pose flips the plane
-            })
+            planeMat
           );
           plane.renderOrder = -1;
-          plane.position.z = 0.001; 
+          plane.position.z = 0.001; // hair above the card — no z-fighting
+
+          const attachTexture = () => {
+            if (el.videoWidth > 0 && !planeMat.map) {
+              planeMat.map = tex;
+              planeMat.color.set(0xffffff);
+              planeMat.needsUpdate = true;
+            }
+          };
+          el.addEventListener("loadedmetadata", attachTexture);
+          el.addEventListener("loadeddata", attachTexture);
+          el.addEventListener("canplay", attachTexture);
 
           if ((def.fit || "cover") === "cover") {
             const applyCoverFit = () => {
@@ -310,6 +330,7 @@ export default function MarkerTracker({
           vAnchor.onTargetFound = () => {
             if (state.found) return;
             state.found = true;
+            onTargetFound?.(); // drive shared UI state for video-only items
             if (def.autoplay !== false) tryPlayVideo(el); // resume — currentTime never reset
             // Debug: verify decode + texture wiring (remove after confirming)
             const logVideo = (tag) =>
@@ -341,6 +362,7 @@ export default function MarkerTracker({
             state.found = false;
             state.lastSeenAt = performance.now();
             el.pause(); // pause only — resumes from same spot on reacquire
+            onTargetLost?.();
           };
 
           if (!firstVideoEl) firstVideoEl = el;
@@ -660,12 +682,9 @@ export default function MarkerTracker({
         const delta = clock.getDelta();
         const now = performance.now();
 
-        // Smooth every configured target's pose (model + any video planes).
-        // Each content group is a scene root child → its local transform IS
-        // the world pose. Output = S exactly, no raw delta re-injection.
+        
         for (const s of smoothStates) {
-          // Show while tracked, plus a short grace period so brief tracking
-          // flickers don't make content blink
+      
           const tracked = s.found || now - s.lastSeenAt < 500;
           s.group.visible = tracked;
           if (!tracked) {
@@ -673,8 +692,7 @@ export default function MarkerTracker({
             continue;
           }
 
-          // Raw world pose P written by MindAR (matrixWorld is always populated,
-          // regardless of whether MindAR writes .matrix or .position/.quaternion)
+
           s.anchor.group.matrixWorld.decompose(rawPos, rawQuat, rawScale);
           if (rawScale.lengthSq() <= 1e-10) continue;
 
@@ -683,8 +701,7 @@ export default function MarkerTracker({
             s.smQuat.copy(rawQuat);
             s.poseInit = true;
           } else {
-            // Adaptive smoothing (1€-filter style): jitter gets heavy
-            // smoothing, real card movement stays responsive
+         e
             const dist = s.smPos.distanceTo(rawPos);
             if (dist > POS_EPS) {
               const a =
@@ -705,6 +722,13 @@ export default function MarkerTracker({
           s.group.position.copy(s.smPos);
           s.group.quaternion.copy(s.smQuat);
           s.group.scale.copy(rawScale);
+        }
+
+     
+        for (const s of videoStates) {
+          if (s.tex && s.el && !s.el.paused && s.el.readyState >= 2) {
+            s.tex.needsUpdate = true;
+          }
         }
 
         // Pulse the selected planet's emissive highlight (material-only, no transforms)
