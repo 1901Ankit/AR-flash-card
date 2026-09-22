@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import CameraView from "./CameraView";
 import MarkerTracker from "./MarkerTracker";
 import AROverlayUI from "./AROverlayUI";
@@ -6,13 +6,79 @@ import AROverlayUI from "./AROverlayUI";
 export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
   const containerRef = useRef(null);
   const cleanupRef = useRef(null);
+  const foundRef = useRef(false);
+  const lostTimerRef = useRef(null);
   const [isTargetFound, setIsTargetFound] = useState(false);
+  const [activeHotspot, setActiveHotspot] = useState(null);
+  const videoControlRef = useRef(null);
+  const [videoMuted, setVideoMuted] = useState(true);
+  const [videoNeedsGesture, setVideoNeedsGesture] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (lostTimerRef.current) {
+        clearTimeout(lostTimerRef.current);
+        lostTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  const handleTargetFound = useCallback(() => {
+    if (lostTimerRef.current) {
+      clearTimeout(lostTimerRef.current);
+      lostTimerRef.current = null;
+    }
+    if (!foundRef.current) {
+      foundRef.current = true;
+      setIsTargetFound(true);
+    }
+  }, [setIsTargetFound]);
+
+  const handleTargetLost = useCallback(() => {
+    if (!foundRef.current || lostTimerRef.current) return;
+    lostTimerRef.current = setTimeout(() => {
+      foundRef.current = false;
+      setIsTargetFound(false);
+      lostTimerRef.current = null;
+    }, 600);
+  }, [setIsTargetFound]);
 
   const activeItem = item || {
     title: "AR Flashcard",
     category: "flashcard",
     description: "Scan the card marker to view 3D model",
   };
+
+  const handleHotspotTap = useCallback(
+    (key, name) => {
+      const map = activeItem?.hotspots;
+      if (!map) return;
+      if (key && map[key]) {
+        setActiveHotspot({ key, selId: Date.now(), ...map[key] });
+      } else if (name) {
+        // Fallback: tapped a named object that isn't in the hotspot map
+        const pretty = name.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
+        setActiveHotspot({
+          key: null,
+          selId: Date.now(),
+          title: pretty,
+          type: "Object",
+          script: `This is ${pretty}.`,
+        });
+      }
+    },
+    [activeItem]
+  );
+
+  const handleCloseHotspot = useCallback(() => setActiveHotspot(null), []);
+
+  const handleToggleVideoMute = useCallback(() => {
+    videoControlRef.current?.toggleMute();
+  }, []);
+
+  const handlePlayVideo = useCallback(() => {
+    videoControlRef.current?.play();
+  }, []);
 
   const handleExit = () => {
     cleanupRef.current?.();
@@ -28,12 +94,29 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
         modelConfig={modelConfig || activeItem.model}
         active
         onCleanupRef={cleanupRef}
-        onTargetFound={() => setIsTargetFound(true)}
-        onTargetLost={() => setIsTargetFound(false)}
+        onTargetFound={handleTargetFound}
+        onTargetLost={handleTargetLost}
+        onHotspotTap={handleHotspotTap}
+        hotspots={activeItem.hotspots}
+        selectedKey={activeHotspot ? activeHotspot.key ?? activeHotspot.title : null}
+        cardVideo={activeItem.cardVideo}
+        videoControlRef={videoControlRef}
+        onVideoMutedChange={setVideoMuted}
+        onVideoNeedsGesture={setVideoNeedsGesture}
       />
 
       {/* Interactive AR Overlay HUD */}
-      <AROverlayUI item={activeItem} isTargetFound={isTargetFound} onExit={handleExit} />
+      <AROverlayUI
+        item={activeItem}
+        isTargetFound={isTargetFound}
+        activeHotspot={activeHotspot}
+        onCloseHotspot={handleCloseHotspot}
+        videoMuted={videoMuted}
+        videoNeedsGesture={videoNeedsGesture}
+        onToggleVideoMute={handleToggleVideoMute}
+        onPlayVideo={handlePlayVideo}
+        onExit={handleExit}
+      />
 
       <style>{`
         @keyframes scanline {

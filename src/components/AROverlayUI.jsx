@@ -1,12 +1,23 @@
-import { useState, useEffect } from "react";
-import { Volume2, VolumeX, HelpCircle, BookOpen, Layers, Check, X, RotateCw, Plus, Minus } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Volume2, VolumeX, HelpCircle, BookOpen, Layers, Check, X, RotateCw, Plus, Minus, Play } from "lucide-react";
 import { tts } from "../services/ttsService";
 
-export default function AROverlayUI({ item, isTargetFound, onExit }) {
+export default function AROverlayUI({
+  item,
+  isTargetFound,
+  activeHotspot,
+  onCloseHotspot,
+  videoMuted,
+  videoNeedsGesture,
+  onToggleVideoMute,
+  onPlayVideo,
+  onExit,
+}) {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState(null);
   const [activeStoryPage, setActiveStoryPage] = useState(0);
+  const lastSpokenRef = useRef(null);
 
   const handleScaleModel = (factor) => {
     if (window.__arCurrentModel) {
@@ -39,14 +50,27 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
     }
   }, [isTargetFound, item]);
 
+  // When a planet/hotspot is tapped, narrate its script exactly once per selection
+  // (selId guards against StrictMode double-effects; a deliberate re-tap gets a new selId)
+  useEffect(() => {
+    if (activeHotspot?.script && activeHotspot.selId !== lastSpokenRef.current) {
+      lastSpokenRef.current = activeHotspot.selId;
+      tts.speak(activeHotspot.script, {
+        pitch: item?.audio?.pitch || 1.0,
+        rate: item?.audio?.rate || 1.0,
+      });
+    }
+  }, [activeHotspot]);
+
   const toggleSpeech = () => {
-    if (!item?.audio?.script) return;
+    const script = activeHotspot?.script || item?.audio?.script;
+    if (!script) return;
     if (isPlayingAudio) {
       tts.stop();
     } else {
-      tts.speak(item.audio.script, {
-        pitch: item.audio.pitch || 1.0,
-        rate: item.audio.rate || 1.0,
+      tts.speak(script, {
+        pitch: item.audio?.pitch || 1.0,
+        rate: item.audio?.rate || 1.0,
       });
     }
   };
@@ -89,7 +113,7 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
 
         {/* Action buttons */}
         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {item?.audio && (
+          {(item?.audio || activeHotspot) && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -194,34 +218,135 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
       )}
 
       {/* Bottom Floating Info Card & 3D Controls */}
-      {isTargetFound && (
-        <div className="pointer-events-auto mx-auto w-full max-w-lg flex flex-col gap-2 px-1">
-          {/* 3D Quick Adjust Controls */}
-          <div className="flex items-center justify-center gap-2 flex-wrap">
-            <button
-              onClick={() => handleScaleModel(1.15)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
-              title="Scale Up"
-            >
-              <Plus className="w-3.5 h-3.5 text-slate-300" /> Scale +
-            </button>
-            <button
-              onClick={() => handleScaleModel(0.85)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
-              title="Scale Down"
-            >
-              <Minus className="w-3.5 h-3.5 text-slate-300" /> Scale -
-            </button>
-            <button
-              onClick={handleRotateModel}
-              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
-              title="Rotate 3D Model"
-            >
-              <RotateCw className="w-3.5 h-3.5 text-slate-300" /> Rotate
-            </button>
+      <div
+        className={`pointer-events-auto absolute bottom-5 left-1/2 -translate-x-1/2 w-[calc(100%-2rem)] max-w-lg flex flex-col gap-2 px-1 transition-opacity transition-transform duration-500 ease-out ${
+          isTargetFound || activeHotspot
+            ? "opacity-100 translate-y-0"
+            : "opacity-0 translate-y-4 pointer-events-none"
+        }`}
+        style={{ willChange: "opacity, transform" }}
+      >
+        {/* Tap hint for interactive models */}
+        {isTargetFound && item?.hotspots && !activeHotspot && (
+          <div className="self-center px-3 py-1 rounded-full bg-slate-900/80 border border-slate-700 text-[10px] sm:text-[11px] text-violet-300 backdrop-blur-md">
+            Tap a planet to hear its story
           </div>
+        )}
 
-          <div className="bg-[#141824]/95 backdrop-blur-md border border-slate-700 rounded-2xl p-3.5 sm:p-4 text-slate-100 shadow-xl animate-fade-in max-h-[28vh] overflow-y-auto">
+        {/* 3D Quick Adjust Controls */}
+        <div className="flex items-center justify-center gap-2 flex-wrap">
+          <button
+            onClick={() => handleScaleModel(1.15)}
+            className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+            title="Scale Up"
+          >
+            <Plus className="w-3.5 h-3.5 text-slate-300" /> Scale +
+          </button>
+          <button
+            onClick={() => handleScaleModel(0.85)}
+            className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+            title="Scale Down"
+          >
+            <Minus className="w-3.5 h-3.5 text-slate-300" /> Scale -
+          </button>
+          <button
+            onClick={handleRotateModel}
+            className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+            title="Rotate 3D Model"
+          >
+            <RotateCw className="w-3.5 h-3.5 text-slate-300" /> Rotate
+          </button>
+          {item?.cardVideo && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVideoMute?.();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+              title={videoMuted ? "Unmute video" : "Mute video"}
+            >
+              {videoMuted ? (
+                <VolumeX className="w-3.5 h-3.5 text-slate-300" />
+              ) : (
+                <Volume2 className="w-3.5 h-3.5 text-violet-300" />
+              )}
+              {videoMuted ? "Unmute" : "Mute"}
+            </button>
+          )}
+        </div>
+
+        {activeHotspot ? (
+          /* Selected planet info panel */
+          <div className="bg-[#141824]/95 backdrop-blur-md border border-violet-700/60 rounded-2xl p-3.5 sm:p-4 text-slate-100 shadow-xl max-h-[34vh] overflow-y-auto">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex items-center gap-2 flex-wrap min-w-0">
+                <span className="px-2 py-0.5 rounded text-[9px] sm:text-[10px] font-semibold uppercase bg-violet-900/60 text-violet-200 border border-violet-700 shrink-0">
+                  {activeHotspot.type || "Object"}
+                </span>
+                <h3 className="font-bold text-sm sm:text-base text-slate-100 truncate">
+                  {activeHotspot.title}
+                </h3>
+              </div>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  tts.stop();
+                  onCloseHotspot?.();
+                }}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+                title="Close planet info"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {(activeHotspot.distance || activeHotspot.size) && (
+              <div className="grid grid-cols-2 gap-2 mt-2.5">
+                {activeHotspot.distance && (
+                  <div className="bg-slate-900/70 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                    <div className="text-[9px] uppercase tracking-wide text-slate-500">
+                      Distance
+                    </div>
+                    <div className="text-[11px] sm:text-xs text-slate-200 font-medium leading-snug">
+                      {activeHotspot.distance}
+                    </div>
+                  </div>
+                )}
+                {activeHotspot.size && (
+                  <div className="bg-slate-900/70 border border-slate-800 rounded-lg px-2.5 py-1.5">
+                    <div className="text-[9px] uppercase tracking-wide text-slate-500">
+                      Size
+                    </div>
+                    <div className="text-[11px] sm:text-xs text-slate-200 font-medium leading-snug">
+                      {activeHotspot.size}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeHotspot.script && (
+              <p className="text-[11px] sm:text-xs text-slate-400 mt-2 leading-relaxed">
+                {activeHotspot.script}
+              </p>
+            )}
+
+            {activeHotspot.facts?.length > 0 && (
+              <ul className="mt-2 flex flex-col gap-1">
+                {activeHotspot.facts.map((fact, i) => (
+                  <li
+                    key={i}
+                    className="text-[11px] sm:text-xs text-slate-300 flex gap-1.5 leading-snug"
+                  >
+                    <span className="text-violet-400 shrink-0">•</span>
+                    <span>{fact}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ) : (
+          <div className="bg-[#141824]/95 backdrop-blur-md border border-slate-700 rounded-2xl p-3.5 sm:p-4 text-slate-100 shadow-xl max-h-[28vh] overflow-y-auto">
             <div className="flex items-start justify-between gap-2">
               <div>
                 <div className="flex items-center gap-2">
@@ -238,6 +363,22 @@ export default function AROverlayUI({ item, isTargetFound, onExit }) {
               </div>
             </div>
           </div>
+        )}
+      </div>
+
+      {/* Autoplay-blocked fallback: tap to start the card video */}
+      {item?.cardVideo && videoNeedsGesture && (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-30">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onPlayVideo?.();
+            }}
+            style={{ touchAction: "manipulation" }}
+            className="pointer-events-auto px-4 py-2.5 rounded-xl bg-violet-600/95 hover:bg-violet-500 text-white border border-violet-400 text-xs sm:text-sm font-semibold flex items-center gap-2 shadow-xl active:scale-95 transition-transform"
+          >
+            <Play className="w-4 h-4" /> Tap to play video
+          </button>
         </div>
       )}
 
