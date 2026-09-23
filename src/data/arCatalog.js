@@ -381,15 +381,16 @@ export const INITIAL_CATALOG = [
     category: "digital_story",
     tagline: "Legendary Sannin Video Card",
     description: "Scan the Jiraiya card to play his story directly on the card surface.",
-    markerUrl: targetJiraiyaMindUrl,
-    markerPreview: gokuMarkerImg, // TODO: swap for a jiraiya preview image
+    markerUrl: targetMindUrl,
+    markerPreview: gokuMarkerImg, 
     video: {
       type: "video",
       src: jiraiyaVideoUrl,
       fit: "cover", // fills the card edge-to-edge, cropped — no letterboxing
       loop: true,
       autoplay: true, // muted autoplay on target-found (gesture rules apply)
-      aspect: 1.5, // physical card width / height — adjust to the printed card
+      // size is auto-derived from the marker image aspect — set `aspect`
+      // (card width / height) only to override manually
     },
   },
 ];

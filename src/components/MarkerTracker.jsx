@@ -263,8 +263,10 @@ export default function MarkerTracker({
           tex.minFilter = THREE.LinearFilter;
           tex.generateMipmaps = false;
           // MindAR normalizes target width to 1 unit — plane width 1 spans the
-          // card exactly; height comes from the card's aspect ratio
-          const aspect = def.aspect || 1.5;
+          // card exactly; height comes from the marker's aspect ratio. Start
+          // with def.aspect/fallback — corrected to the .mind file's real
+          // marker dimensions after start() below.
+          let aspect = def.aspect || 1.5;
           // Start MAGENTA — the video texture is attached only once a frame
           // actually decodes (videoWidth > 0). Diagnostic:
           //   magenta rectangle on card = plane renders, codec undecodable
@@ -293,22 +295,23 @@ export default function MarkerTracker({
           el.addEventListener("loadeddata", attachTexture);
           el.addEventListener("canplay", attachTexture);
 
+          // Crop the video texture so it fills the plane edge-to-edge
+          const applyCoverFit = () => {
+            const vw = el.videoWidth;
+            const vh = el.videoHeight;
+            if (!vw || !vh) return;
+            const videoAspect = vw / vh;
+            if (videoAspect > aspect) {
+              tex.repeat.set(aspect / videoAspect, 1); // crop left/right
+            } else {
+              tex.repeat.set(1, videoAspect / aspect); // crop top/bottom
+            }
+            tex.offset.set(
+              (1 - tex.repeat.x) / 2,
+              (1 - tex.repeat.y) / 2
+            );
+          };
           if ((def.fit || "cover") === "cover") {
-            const applyCoverFit = () => {
-              const vw = el.videoWidth;
-              const vh = el.videoHeight;
-              if (!vw || !vh) return;
-              const videoAspect = vw / vh;
-              if (videoAspect > aspect) {
-                tex.repeat.set(aspect / videoAspect, 1); // crop left/right
-              } else {
-                tex.repeat.set(1, videoAspect / aspect); // crop top/bottom
-              }
-              tex.offset.set(
-                (1 - tex.repeat.x) / 2,
-                (1 - tex.repeat.y) / 2
-              );
-            };
             if (el.readyState >= 1) applyCoverFit();
             else {
               el.addEventListener("loadedmetadata", applyCoverFit, {
@@ -325,6 +328,15 @@ export default function MarkerTracker({
           const state = newSmoothState(vAnchor, vGroup);
           state.el = el;
           state.tex = tex;
+          state.def = def;
+          // Resize the plane to a new aspect and re-crop the texture
+          state.applyAspect = (newAspect) => {
+            if (!newAspect || Math.abs(newAspect - aspect) < 1e-3) return;
+            aspect = newAspect;
+            plane.geometry.dispose();
+            plane.geometry = new THREE.PlaneGeometry(1, 1 / aspect);
+            if ((def.fit || "cover") === "cover") applyCoverFit();
+          };
           videoStates.push(state);
 
           vAnchor.onTargetFound = () => {
@@ -667,6 +679,20 @@ export default function MarkerTracker({
         return;
       }
 
+      // Snap video planes to the REAL marker dimensions baked into the .mind
+      // file ([width, height] px per target) — covers the card edge-to-edge,
+      // portrait or landscape. Skipped when the item sets an explicit `aspect`.
+      const markerDims = mindarThree.controller?.markerDimensions;
+      if (Array.isArray(markerDims)) {
+        console.log("[MarkerTracker] .mind marker dimensions:", markerDims);
+        videoStates.forEach((s) => {
+          const d = markerDims[s.def.targetIndex ?? 0];
+          if (s.def.aspect == null && d?.[0] && d?.[1]) {
+            s.applyAspect(d[0] / d[1]);
+          }
+        });
+      }
+
       // --- Pose smoothing state (kills MindAR per-frame jitter) ---
       const rawPos = new THREE.Vector3();
       const rawQuat = new THREE.Quaternion();
@@ -701,7 +727,6 @@ export default function MarkerTracker({
             s.smQuat.copy(rawQuat);
             s.poseInit = true;
           } else {
-         e
             const dist = s.smPos.distanceTo(rawPos);
             if (dist > POS_EPS) {
               const a =
