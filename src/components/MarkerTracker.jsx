@@ -215,15 +215,15 @@ export default function MarkerTracker({
           return;
         }
 
-      modelObject.scale.setScalar(MODEL_BASE_SCALE);
-        window.__arBaseScale = MODEL_BASE_SCALE;
+        // Attach GLB model directly to the tracked anchor group so it inherits
+        // MindAR's pose exactly, with no custom smoothing causing micro vibrations.
+        anchor.group.add(modelObject);
+
+        const baseScale = modelObject.userData?.baseScale ?? 1;
+        modelObject.scale.setScalar(baseScale);
+        window.__arBaseScale = baseScale;
         window.__arScaleMult = 1;
 
-        const smoothGroup = new THREE.Group();
-        smoothGroup.visible = false;
-        scene.add(smoothGroup);
-        smoothGroup.add(modelObject);
-        modelState = newSmoothState(anchor, smoothGroup);
         window.__arCurrentModel = modelObject;
       }
 
@@ -659,23 +659,19 @@ export default function MarkerTracker({
       tapSurface.addEventListener("pointerup", upHandler);
       tapSurface.addEventListener("pointercancel", cancelHandlerRef);
 
-      if (anchor && modelState) {
+      if (anchor && modelObject) {
         anchor.onTargetFound = () => {
-          if (modelState.found) return;
-          modelState.found = true;
-          // Re-apply default scale baseline × current user multiplier
           if (modelObject) {
+            modelObject.visible = true;
+            // Re-apply default scale baseline × current user multiplier
             modelObject.scale.setScalar(
-              (window.__arBaseScale ?? MODEL_BASE_SCALE) *
-                (window.__arScaleMult ?? 1)
+              (window.__arBaseScale ?? 1) * (window.__arScaleMult ?? 1)
             );
           }
           onTargetFound?.();
         };
         anchor.onTargetLost = () => {
-          if (!modelState.found) return;
-          modelState.found = false;
-          modelState.lastSeenAt = performance.now();
+          if (modelObject) modelObject.visible = false;
           onTargetLost?.();
         };
       }

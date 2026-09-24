@@ -33,7 +33,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: gokuModelUrl,
-      targetHeight: 1.1,
+      scale: 1,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
@@ -66,7 +66,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: dragonModelUrl,
-      targetHeight: 1.15,
+      scale: 1,
       xOffset: 0,
       yOffset: 0.05,
       zOffset: 0,
@@ -166,7 +166,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: twoModelUrl,
-      targetHeight: 1.1,
+      scale: 1,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
@@ -208,7 +208,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: solarModelUrl,
-      targetHeight: 1.05,
+      scale: 1,
     },
     // Content map: which content renders on which MindAR target index.
     // Add a video card later by compiling a 2nd image into the .mind file and

@@ -257,24 +257,17 @@ async function createGlb(config) {
     // Reset transformations for accurate bounding box measurement
     model.updateMatrixWorld(true);
 
-    const initialBox = new THREE.Box3().setFromObject(model);
-    const size = new THREE.Vector3();
-    initialBox.getSize(size);
-    const maxDim = Math.max(size.x, size.y, size.z);
+    const autoScale = config.scale ?? 1;
 
-    const targetHeight = config.targetHeight ?? 1.1;
-    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 1.1);
-
-    // Apply uniform scale
+    // Apply uniform scale. GLB models render at their native scale by default
+    // unless an explicit config.scale is provided, preserving original proportions.
     model.scale.setScalar(autoScale);
     model.updateMatrixWorld(true);
 
-    // Compute final scaled bounding box
+    // Compute final scaled bounding box after applying scale
     const scaledBox = new THREE.Box3().setFromObject(model);
-    const scaledCenter = new THREE.Vector3();
-    scaledBox.getCenter(scaledCenter);
-    const scaledSize = new THREE.Vector3();
-    scaledBox.getSize(scaledSize);
+    const finalCenter = new THREE.Vector3();
+    scaledBox.getCenter(finalCenter);
 
     const xOffset = config.xOffset || 0;
     const yOffset = config.yOffset || 0;
@@ -287,8 +280,8 @@ async function createGlb(config) {
     const zBaseOffset = -scaledBox.min.z + 0.05;
 
     model.position.set(
-      -scaledCenter.x + xOffset,
-      -scaledCenter.y + yOffset,
+      -finalCenter.x + xOffset,
+      -finalCenter.y + yOffset,
       zBaseOffset + zOffset
     );
 
@@ -298,6 +291,7 @@ async function createGlb(config) {
     wrapper.userData = {
       isArModel: true,
       mixer,
+      baseScale: autoScale,
       rotationSpeed: 0, // GLB models remain static by default — manual drag/swipe rotation only
     };
     return wrapper;
