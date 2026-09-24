@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-function createCube({ scale = 0.35, targetHeight } = {}) {
-  const finalScale = targetHeight ? targetHeight * 0.5 : scale;
+function createCube({ scale = 0.5, targetHeight } = {}) {
+  const finalScale = targetHeight ? targetHeight * 0.7 : scale;
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial({
     color: 0x8b5cf6,
@@ -262,8 +262,8 @@ async function createGlb(config) {
     initialBox.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
 
-    const targetHeight = config.targetHeight ?? 0.65;
-    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.65);
+    const targetHeight = config.targetHeight ?? 1.1;
+    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 1.1);
 
     // Apply uniform scale
     model.scale.setScalar(autoScale);
@@ -298,7 +298,7 @@ async function createGlb(config) {
     wrapper.userData = {
       isArModel: true,
       mixer,
-      rotationSpeed: config.rotationSpeed || 0,
+      rotationSpeed: 0, // GLB models remain static by default — manual drag/swipe rotation only
     };
     return wrapper;
   } catch (err) {
@@ -326,11 +326,13 @@ export async function buildModel(config = { type: "cube" }) {
 export function animateModel(object, deltaSeconds) {
   if (!object) return;
 
+  // Keyframe skeletal/action animations (if any)
   if (object.userData?.mixer) {
     object.userData.mixer.update(deltaSeconds);
   }
 
-  if (object.userData?.rotationSpeed) {
+  // Continuous rotation for non-GLB procedural objects only if configured
+  if (object.userData?.rotationSpeed && !object.userData?.isArModel) {
     object.rotation.y += deltaSeconds * object.userData.rotationSpeed;
   }
 

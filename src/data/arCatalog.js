@@ -33,11 +33,10 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: gokuModelUrl,
-      targetHeight: 0.6,
+      targetHeight: 1.1,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
-      rotationSpeed: 0.4,
     },
     audio: {
       script: "I am Son Goku! Defender of Earth! Let us train together and break our limits!",
@@ -67,11 +66,10 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: dragonModelUrl,
-      targetHeight: 0.6,
+      targetHeight: 1.15,
       xOffset: 0,
       yOffset: 0.05,
       zOffset: 0,
-      rotationSpeed: 0.4,
     },
     audio: {
       script: "Roaaar! I am the Ancient Fire Dragon of the Northern Volcanoes! Beware my burning breath!",
@@ -101,8 +99,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "procedural_arena",
       name: "Cyber Arena Hologram",
-      targetHeight: 0.55,
-      rotationSpeed: 0.6,
+      targetHeight: 0.95,
     },
     audio: {
       script: "Welcome to CyberQuest 3000! Place your game board on a flat table. Scan the side panels for player stats.",
@@ -132,8 +129,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "procedural_portal",
       name: "Forest Portal",
-      targetHeight: 0.55,
-      rotationSpeed: 0.5,
+      targetHeight: 0.95,
     },
     audio: {
       script: "Deep within the emerald woods, little Maya discovered the Whispering Portal. Step through if you dare!",
@@ -170,11 +166,10 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: twoModelUrl,
-      targetHeight: 0.6,
+      targetHeight: 1.1,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
-      rotationSpeed: 0.4,
     },
     audio: {
       script: "Prepare for combat! Shuffle your 50-card deck and draw 5 cards to begin your turn.",
@@ -199,8 +194,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "procedural_solar",
       name: "Saturn & Ring System",
-      targetHeight: 0.55,
-      rotationSpeed: 0.5,
+      targetHeight: 0.95,
     },
   },
   {
@@ -214,8 +208,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: solarModelUrl,
-      targetHeight: 0.55,
-      rotationSpeed: 0.5,
+      targetHeight: 1.05,
     },
     // Content map: which content renders on which MindAR target index.
     // Add a video card later by compiling a 2nd image into the .mind file and

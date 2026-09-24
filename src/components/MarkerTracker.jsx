@@ -37,9 +37,16 @@ export default function MarkerTracker({
     let modelObject = null;
     let videoStates = []; 
     let downHandler = null;
+    let moveHandler = null;
     let upHandler = null;
+    let isDragging = false;
+    let lastPointerX = 0;
+    let lastPointerY = 0;
+    let dragDistance = 0;
     let cancelHandlerRef = () => {
+      isDragging = false;
       downPos = null;
+      dragDistance = 0;
     };
     let highlighted = null;
     let selectedTarget = null;
@@ -107,6 +114,7 @@ export default function MarkerTracker({
       const tapSurface = containerRef.current;
       if (tapSurface) {
         if (downHandler) tapSurface.removeEventListener("pointerdown", downHandler);
+        if (moveHandler) tapSurface.removeEventListener("pointermove", moveHandler);
         if (upHandler) tapSurface.removeEventListener("pointerup", upHandler);
         tapSurface.removeEventListener("pointercancel", cancelHandlerRef);
       }
@@ -258,33 +266,21 @@ export default function MarkerTracker({
 
           const tex = new THREE.VideoTexture(el);
           tex.encoding = THREE.sRGBEncoding;
-          // CRITICAL: video frames are usually non-power-of-2 — mipmapping
-          // makes the texture incomplete → plane renders black
           tex.minFilter = THREE.LinearFilter;
           tex.generateMipmaps = false;
-          // Standard trading card aspect ratio is ~0.714 (2.5 x 3.5 in)
-          // Priority: 1. explicit def.aspect, 2. .mind marker dims, 3. video aspect / default
           let cardAspect = def.aspect || null;
 
           const planeMat = new THREE.MeshBasicMaterial({
             color: 0xffffff,
             toneMapped: false,
-            depthWrite: false, // never occludes other content
-            side: THREE.DoubleSide, // visible even if the pose flips the plane
+            depthWrite: false, 
+            side: THREE.DoubleSide, 
           });
           const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), planeMat);
           plane.renderOrder = -1;
-          plane.position.z = 0.001; // hair above the card — no z-fighting
+          plane.position.z = 0.001; 
 
-          // Attach plane directly to the anchor group so it is locked to the
-          // tracked marker without any secondary tilt lag or dead-zone freeze.
           vAnchor.group.add(plane);
-
-          // Size the plane + texture so the video maps onto the card without
-          // stretching, per the requested object-fit:
-          //   contain → fits completely inside card width & height (no overflow, no cropping)
-          //   cover   → plane spans the whole card; texture is center-cropped to fill
-          //   fill    → exact stretch to card boundaries
           const relayout = () => {
             const va =
               el.videoWidth && el.videoHeight
@@ -608,7 +604,7 @@ export default function MarkerTracker({
         onHotspotTap?.(entry?.key ?? null, entry?.name ?? target.name);
       };
 
-      // Tap vs drag: only a short, nearly-stationary press counts as a select
+      // Pointer interaction: drag/swipe rotates the 3D model; short stationary tap selects
       downHandler = (e) => {
         // First tap on the AR surface = the browser's required user gesture:
         // unmute the card video (unless the user explicitly muted it) and
@@ -621,21 +617,45 @@ export default function MarkerTracker({
           }
           tryPlayVideo(firstVideoEl);
         }
+        isDragging = true;
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+        dragDistance = 0;
         downPos = { x: e.clientX, y: e.clientY, t: performance.now() };
       };
+
+      moveHandler = (e) => {
+        if (!isDragging) return;
+        const dx = e.clientX - lastPointerX;
+        const dy = e.clientY - lastPointerY;
+        lastPointerX = e.clientX;
+        lastPointerY = e.clientY;
+        dragDistance += Math.hypot(dx, dy);
+
+        if (modelObject && dragDistance > 4) {
+          // Horizontal swipe/drag rotates model around Y-axis smoothly
+          modelObject.rotation.y += dx * 0.008;
+        }
+      };
+
       upHandler = (e) => {
         if (!downPos) return;
-        const dx = e.clientX - downPos.x;
-        const dy = e.clientY - downPos.y;
         const dt = performance.now() - downPos.t;
+        const wasTap = dragDistance < 8 && dt <= 300;
+        isDragging = false;
         downPos = null;
-        if (Math.hypot(dx, dy) > 8 || dt > 300) return; // drag, not a tap
-        handleTap(e);
+        dragDistance = 0;
+
+        if (wasTap) {
+          handleTap(e);
+        }
       };
+
       // Listen on the container — MindAR's <video> sits on top of the canvas,
       // so canvas-level listeners would never fire. Events bubble up here.
       const tapSurface = containerRef.current;
       tapSurface.addEventListener("pointerdown", downHandler);
+      tapSurface.addEventListener("pointermove", moveHandler);
       tapSurface.addEventListener("pointerup", upHandler);
       tapSurface.addEventListener("pointercancel", cancelHandlerRef);
 
