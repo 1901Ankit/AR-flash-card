@@ -262,11 +262,16 @@ export default function MarkerTracker({
           // makes the texture incomplete → plane renders black
           tex.minFilter = THREE.LinearFilter;
           tex.generateMipmaps = false;
-          // MindAR normalizes target width to 1 unit — plane width 1 spans the
-          // card exactly; height comes from the marker's aspect ratio. Start
-          // with def.aspect/fallback — corrected to the .mind file's real
-          // marker dimensions after start() below.
-          let aspect = def.aspect || 1.5;
+          // MindAR normalizes target width to 1 unit — a plane of width 1
+          // spans the card exactly; height = cardHeight / cardWidth. The real
+          // card aspect is resolved in priority order:
+          //   1. explicit def.aspect
+          //   2. marker dimensions baked into the .mind file (applied via
+          //      state.applyAspect after start() resolves below)
+          //   3. the video's own aspect — last-resort fallback so the video
+          //      can never render stretched even if marker dims are missing
+          let cardAspect = def.aspect || null;
+
           // Start MAGENTA — the video texture is attached only once a frame
           // actually decodes (videoWidth > 0). Diagnostic:
           //   magenta rectangle on card = plane renders, codec undecodable
@@ -277,48 +282,57 @@ export default function MarkerTracker({
             depthWrite: false, // never occludes other content
             side: THREE.DoubleSide, // visible even if the pose flips the plane
           });
-          const plane = new THREE.Mesh(
-            new THREE.PlaneGeometry(1, 1 / aspect),
-            planeMat
-          );
+          const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), planeMat);
           plane.renderOrder = -1;
           plane.position.z = 0.001; // hair above the card — no z-fighting
 
+          // Size the plane + texture so the video maps onto the card without
+          // stretching, per the requested object-fit:
+          //   cover   → plane spans the whole card; the texture is center-cropped
+          //             via repeat/offset to fill it, preserving video aspect
+          //   contain → texture is untouched; the plane shrinks to the largest
+          //             video-aspect rectangle that fits inside the card
+          const relayout = () => {
+            const va =
+              el.videoWidth && el.videoHeight
+                ? el.videoWidth / el.videoHeight
+                : null;
+            const ca = cardAspect || va || 1;
+            const fit = def.fit || "cover";
+            let pw = 1;
+            let ph = 1 / ca;
+            tex.repeat.set(1, 1);
+            tex.offset.set(0, 0);
+            if (va) {
+              if (fit === "contain") {
+                if (va >= ca) ph = 1 / va;
+                else pw = va / ca;
+              } else {
+                if (va > ca) tex.repeat.set(ca / va, 1); // crop left/right
+                else if (va < ca) tex.repeat.set(1, va / ca); // crop top/bottom
+                tex.offset.set(
+                  (1 - tex.repeat.x) / 2,
+                  (1 - tex.repeat.y) / 2
+                );
+              }
+            }
+            plane.scale.set(pw, ph, 1);
+          };
+          relayout();
+
           const attachTexture = () => {
-            if (el.videoWidth > 0 && !planeMat.map) {
-              planeMat.map = tex;
-              planeMat.color.set(0xffffff);
-              planeMat.needsUpdate = true;
+            if (el.videoWidth > 0) {
+              relayout(); // intrinsic video aspect now known — re-fit
+              if (!planeMat.map) {
+                planeMat.map = tex;
+                planeMat.color.set(0xffffff);
+                planeMat.needsUpdate = true;
+              }
             }
           };
           el.addEventListener("loadedmetadata", attachTexture);
           el.addEventListener("loadeddata", attachTexture);
           el.addEventListener("canplay", attachTexture);
-
-          // Crop the video texture so it fills the plane edge-to-edge
-          const applyCoverFit = () => {
-            const vw = el.videoWidth;
-            const vh = el.videoHeight;
-            if (!vw || !vh) return;
-            const videoAspect = vw / vh;
-            if (videoAspect > aspect) {
-              tex.repeat.set(aspect / videoAspect, 1); // crop left/right
-            } else {
-              tex.repeat.set(1, videoAspect / aspect); // crop top/bottom
-            }
-            tex.offset.set(
-              (1 - tex.repeat.x) / 2,
-              (1 - tex.repeat.y) / 2
-            );
-          };
-          if ((def.fit || "cover") === "cover") {
-            if (el.readyState >= 1) applyCoverFit();
-            else {
-              el.addEventListener("loadedmetadata", applyCoverFit, {
-                once: true,
-              });
-            }
-          }
 
           const vGroup = new THREE.Group();
           vGroup.visible = false;
@@ -329,13 +343,11 @@ export default function MarkerTracker({
           state.el = el;
           state.tex = tex;
           state.def = def;
-          // Resize the plane to a new aspect and re-crop the texture
+          // Snap the plane to a new card aspect and re-fit the texture
           state.applyAspect = (newAspect) => {
-            if (!newAspect || Math.abs(newAspect - aspect) < 1e-3) return;
-            aspect = newAspect;
-            plane.geometry.dispose();
-            plane.geometry = new THREE.PlaneGeometry(1, 1 / aspect);
-            if ((def.fit || "cover") === "cover") applyCoverFit();
+            if (!newAspect || newAspect === cardAspect) return;
+            cardAspect = newAspect;
+            relayout();
           };
           videoStates.push(state);
 
