@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-function createCube({ scale = 0.5, targetHeight } = {}) {
-  const finalScale = targetHeight ? targetHeight * 0.7 : scale;
+function createCube({ scale = 0.35, targetHeight } = {}) {
+  const finalScale = targetHeight ? targetHeight * 0.5 : scale;
   const geometry = new THREE.BoxGeometry(1, 1, 1);
   const material = new THREE.MeshStandardMaterial({
     color: 0x8b5cf6,
@@ -16,6 +16,7 @@ function createCube({ scale = 0.5, targetHeight } = {}) {
   cube.userData.isAnimatedCube = true;
 
   const wrapper = new THREE.Group();
+  // Elevate slightly above the card surface along Z
   wrapper.position.set(0, 0, 0.25);
   wrapper.add(cube);
   return wrapper;
@@ -24,6 +25,7 @@ function createCube({ scale = 0.5, targetHeight } = {}) {
 function createProceduralArena(config = {}) {
   const group = new THREE.Group();
 
+  // Base holographic platform
   const baseGeo = new THREE.CylinderGeometry(0.7, 0.75, 0.06, 32);
   const baseMat = new THREE.MeshStandardMaterial({
     color: 0x0f172a,
@@ -36,16 +38,19 @@ function createProceduralArena(config = {}) {
   base.rotation.x = Math.PI / 2.5;
   group.add(base);
 
+  // Hologram outer ring
   const ringGeo = new THREE.TorusGeometry(0.65, 0.02, 16, 64);
   const ringMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true });
   const ring = new THREE.Mesh(ringGeo, ringMat);
   ring.rotation.x = Math.PI / 2.5;
   group.add(ring);
 
+  // Inner pulsing grid
   const gridHelper = new THREE.GridHelper(1.0, 8, 0x5eead4, 0x3b82f6);
   gridHelper.rotation.x = Math.PI / 2.5;
   group.add(gridHelper);
 
+  // Hologram core crystal
   const coreGeo = new THREE.OctahedronGeometry(0.24, 0);
   const coreMat = new THREE.MeshStandardMaterial({
     color: 0x8b5cf6,
@@ -58,6 +63,7 @@ function createProceduralArena(config = {}) {
   core.position.set(0, 0, 0.15);
   group.add(core);
 
+  // Floating orbit particles
   const orbitGroup = new THREE.Group();
   orbitGroup.position.set(0, 0, 0.15);
   for (let i = 0; i < 4; i++) {
@@ -87,6 +93,7 @@ function createProceduralArena(config = {}) {
   group.scale.setScalar(scale);
 
   const wrapper = new THREE.Group();
+  // Position centered on card and elevated in front (Z > 0)
   wrapper.position.set(0, 0, 0.2);
   wrapper.add(group);
   return wrapper;
@@ -95,6 +102,7 @@ function createProceduralArena(config = {}) {
 function createProceduralPortal(config = {}) {
   const group = new THREE.Group();
 
+  // Outer magical arch / ring
   const ringGeo = new THREE.TorusGeometry(0.55, 0.05, 16, 48);
   const ringMat = new THREE.MeshStandardMaterial({
     color: 0x10b981,
@@ -105,6 +113,7 @@ function createProceduralPortal(config = {}) {
   const arch = new THREE.Mesh(ringGeo, ringMat);
   group.add(arch);
 
+  // Inner energy portal vortex
   const vortexGeo = new THREE.CircleGeometry(0.48, 32);
   const vortexMat = new THREE.MeshBasicMaterial({
     color: 0x34d399,
@@ -116,6 +125,7 @@ function createProceduralPortal(config = {}) {
   const vortex = new THREE.Mesh(vortexGeo, vortexMat);
   group.add(vortex);
 
+  // Pedestal at bottom
   const pedGeo = new THREE.CylinderGeometry(0.4, 0.5, 0.1, 16);
   const pedMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.8 });
   const ped = new THREE.Mesh(pedGeo, pedMat);
@@ -123,6 +133,7 @@ function createProceduralPortal(config = {}) {
   ped.position.set(0, -0.5, -0.05);
   group.add(ped);
 
+  // Magic floating sparks
   const sparkGroup = new THREE.Group();
   for (let i = 0; i < 6; i++) {
     const sGeo = new THREE.DodecahedronGeometry(0.04);
@@ -155,6 +166,7 @@ function createProceduralPortal(config = {}) {
 function createProceduralSolar(config = {}) {
   const group = new THREE.Group();
 
+  // Planet body centered at (0, 0, 0)
   const planetGeo = new THREE.SphereGeometry(0.35, 32, 32);
   const planetMat = new THREE.MeshStandardMaterial({
     color: 0xf59e0b,
@@ -166,6 +178,7 @@ function createProceduralSolar(config = {}) {
   const planet = new THREE.Mesh(planetGeo, planetMat);
   group.add(planet);
 
+  // Planet rings
   const ringGeo = new THREE.RingGeometry(0.45, 0.75, 32);
   const ringMat = new THREE.MeshStandardMaterial({
     color: 0xd97706,
@@ -177,6 +190,7 @@ function createProceduralSolar(config = {}) {
   ring.rotation.x = Math.PI / 3;
   group.add(ring);
 
+  // Orbiting Moons
   const moonGroup = new THREE.Group();
   for (let i = 0; i < 3; i++) {
     const mGeo = new THREE.SphereGeometry(0.05, 16, 16);
@@ -235,10 +249,12 @@ async function createGlb(config) {
       });
     }
 
+    // Apply optional initial rotation config if needed
     if (config.rotationX) model.rotation.x = config.rotationX;
     if (config.rotationY) model.rotation.y = config.rotationY;
     if (config.rotationZ) model.rotation.z = config.rotationZ;
 
+    // Reset transformations for accurate bounding box measurement
     model.updateMatrixWorld(true);
 
     const initialBox = new THREE.Box3().setFromObject(model);
@@ -246,13 +262,14 @@ async function createGlb(config) {
     initialBox.getSize(size);
     const maxDim = Math.max(size.x, size.y, size.z);
 
-   
-    const targetHeight = config.targetHeight ?? 0.55;
-    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.55);
+    const targetHeight = config.targetHeight ?? 0.65;
+    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.65);
 
+    // Apply uniform scale
     model.scale.setScalar(autoScale);
     model.updateMatrixWorld(true);
 
+    // Compute final scaled bounding box
     const scaledBox = new THREE.Box3().setFromObject(model);
     const scaledCenter = new THREE.Vector3();
     scaledBox.getCenter(scaledCenter);
@@ -263,6 +280,10 @@ async function createGlb(config) {
     const yOffset = config.yOffset || 0;
     const zOffset = config.zOffset || 0;
 
+    // Position model so:
+    // 1. X is perfectly centered (0)
+    // 2. Y is centered (0) + optional offset
+    // 3. Z sits completely in front of the marker plane (no clipping behind card)
     const zBaseOffset = -scaledBox.min.z + 0.05;
 
     model.position.set(
@@ -277,8 +298,7 @@ async function createGlb(config) {
     wrapper.userData = {
       isArModel: true,
       mixer,
-      baseScale: autoScale,
-      rotationSpeed: 0, 
+      rotationSpeed: config.rotationSpeed || 0,
     };
     return wrapper;
   } catch (err) {
@@ -310,7 +330,7 @@ export function animateModel(object, deltaSeconds) {
     object.userData.mixer.update(deltaSeconds);
   }
 
-  if (object.userData?.rotationSpeed && !object.userData?.isArModel) {
+  if (object.userData?.rotationSpeed) {
     object.rotation.y += deltaSeconds * object.userData.rotationSpeed;
   }
 

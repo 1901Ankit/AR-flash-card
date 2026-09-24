@@ -2,7 +2,10 @@ import targetMindUrl from "../assets/marker/target.mind?url";
 import dragonModelUrl from "../assets/dragon.glb?url";
 import twoModelUrl from "../assets/2.glb?url";
 
-
+/**
+ * AI Automated Generation Service
+ * Autonomous generation of Flashcards, Game Packaging Boxes, and Storybooks.
+ */
 
 const PRESET_TOPIC_TEMPLATES = {
   flashcard: [
@@ -89,6 +92,7 @@ export async function generateAIARExperience({
   const slug = cleanTopic.toLowerCase().replace(/[^a-z0-9]/g, "-");
   const uniqueId = `ai-${slug}-${Date.now().toString(36)}`;
 
+  // Find template or generate dynamically
   const templates = PRESET_TOPIC_TEMPLATES[category] || PRESET_TOPIC_TEMPLATES.flashcard;
   const match = templates.find((t) => t.title.toLowerCase().includes(cleanTopic.toLowerCase()));
 
@@ -113,7 +117,6 @@ export async function generateAIARExperience({
   let modelConfig = {
     type: match?.modelType || (category === "gamebox" ? "procedural_arena" : category === "physical_story" ? "procedural_portal" : "procedural_solar"),
     targetHeight: 1.4,
-    rotationSpeed: 0.5,
   };
 
   if (onProgress) onProgress("4/5: AI Synthesizing voiceover and educational quizzes...");

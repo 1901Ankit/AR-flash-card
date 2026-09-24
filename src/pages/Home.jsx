@@ -106,8 +106,10 @@ export default function Home() {
       }}
       className="relative w-full text-slate-100 flex flex-col justify-between selection:bg-violet-600 selection:text-white"
     >
+      {/* Top Eye-Friendly Dark Navbar */}
       <header className="relative z-20 w-full border-b border-slate-800/80 bg-[#111420]/95 backdrop-blur-md sticky top-0 px-4 sm:px-8 py-3.5 transition-all">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
+          {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="p-2 sm:p-2.5 rounded-xl bg-slate-800/90 border border-slate-700 text-sky-400">
               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -127,6 +129,7 @@ export default function Home() {
             </div>
           </div>
 
+          {/* Quick AI Studio Button */}
           <button
             onClick={() => {
               sfx.playClick();
@@ -141,8 +144,10 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Hero Section */}
       <main className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-5 sm:py-8 md:py-10 flex-1 flex flex-col justify-start">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-center mb-8 sm:mb-10">
+          {/* Left Hero Details */}
           <div className="lg:col-span-7 flex flex-col items-start text-left">
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/90 border border-slate-700 text-[11px] sm:text-xs font-medium text-violet-300 mb-3">
               <Zap className="w-3.5 h-3.5 text-sky-400" /> Interactive 3D World
@@ -159,6 +164,7 @@ export default function Home() {
               Point your camera at flashcards and toy boxes to see characters jump right out! Listen to cool voices, play fun quizzes, and explore science.
             </p>
 
+            {/* CTA Buttons */}
             <div className="mt-5 sm:mt-7 flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5 sm:gap-3.5 w-full sm:w-auto">
               <button
                 type="button"
@@ -187,6 +193,7 @@ export default function Home() {
               </button>
             </div>
 
+            {/* Camera error messages */}
             {status === CAMERA_STATUS.DENIED && (
               <p className="mt-3 p-3 rounded-xl bg-red-950/40 border border-red-800/50 text-red-300 text-xs">
                 Camera access was blocked. Please allow camera permissions in browser settings.
@@ -199,9 +206,11 @@ export default function Home() {
             )}
           </div>
 
+          {/* Right Hero Card Preview */}
           <div className="lg:col-span-5 flex justify-center mt-2 lg:mt-0">
             <div className="relative group w-full max-w-[280px] sm:max-w-[320px] aspect-[3/4] rounded-2xl p-1 bg-slate-800/50 border border-slate-700/80 shadow-md">
               <div className="w-full h-full rounded-xl bg-[#141824] p-3.5 sm:p-5 flex flex-col justify-between overflow-hidden relative">
+                {/* Top Badge */}
                 <div className="flex items-center justify-between">
                   <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-slate-800 text-violet-300 border border-slate-700 flex items-center gap-1.5">
                     <Radio className="w-3 h-3 text-sky-400" /> SELECTED 3D HERO
@@ -215,6 +224,7 @@ export default function Home() {
                   </button>
                 </div>
 
+                {/* Image Texture */}
                 <div className="relative my-2.5 sm:my-3.5 aspect-video rounded-xl overflow-hidden border border-slate-700 bg-slate-900">
                   <img
                     src={selectedItem.markerPreview}
@@ -229,6 +239,7 @@ export default function Home() {
                   </div>
                 </div>
 
+                {/* Card Title & Audio Quote */}
                 <div>
                   <h3 className="text-base sm:text-lg font-bold text-slate-100">{selectedItem.title}</h3>
                   <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 line-clamp-1">{selectedItem.tagline}</p>
@@ -245,6 +256,7 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Feature Highlights */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 sm:gap-4 mb-8">
           {[
             { icon: Zap, label: "Instant Play", desc: "No App Download Needed" },
@@ -270,6 +282,7 @@ export default function Home() {
           })}
         </div>
 
+        {/* Category Filter Pills */}
         <div className="flex items-center justify-between flex-wrap gap-3 mb-5 border-b border-slate-800 pb-4">
           <div>
             <h2 className="text-lg sm:text-xl font-bold tracking-tight text-slate-100 flex items-center gap-2">
@@ -298,6 +311,7 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Catalog Items Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5">
           {filteredItems.map((item) => {
             const isSelected = selectedItem.id === item.id;
@@ -314,6 +328,7 @@ export default function Home() {
                     : "bg-[#141824] border-slate-800 hover:border-slate-700 hover:bg-[#161b2a]"
                 }`}
               >
+                {/* Marker Image */}
                 <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-3 bg-slate-900 border border-slate-800">
                   <img
                     src={item.markerPreview}
@@ -325,6 +340,7 @@ export default function Home() {
                     {item.category.replace("_", " ")}
                   </div>
 
+                  {/* Fullscreen Marker View Trigger */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -337,6 +353,7 @@ export default function Home() {
                   </button>
                 </div>
 
+                {/* Details */}
                 <div>
                   <h3 className="font-bold text-base text-slate-100 group-hover:text-violet-300 transition-colors">
                     {item.title}
@@ -346,6 +363,7 @@ export default function Home() {
                   </p>
                 </div>
 
+                {/* Card Actions */}
                 <div className="flex items-center justify-between gap-2 mt-4 pt-3 border-t border-slate-800">
                   <button
                     onClick={(e) => {
@@ -381,17 +399,22 @@ export default function Home() {
         </div>
       </main>
 
+      {/* Footer */}
       <footer className="relative z-10 w-full text-center py-6 border-t border-slate-800 text-xs text-slate-500 bg-[#111420]/95 backdrop-blur-md">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p>© 2026 Hyper-AR Suite • ANKIT Production</p>
           <div className="flex items-center gap-4 text-slate-500">
-            
+            {/* <span>MindAR Three.js Engine</span>
+            <span>•</span>
+            <span>Multi-Modal AI Pipeline</span> */}
           </div>
         </div>
       </footer>
 
+      {/* Print Exporter Modal */}
       {printItem && <PrintExporter item={printItem} onClose={() => setPrintItem(null)} />}
 
+      {/* Fullscreen Marker Preview Modal */}
       {previewMarkerItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="relative max-w-md w-full bg-[#141824] border border-slate-700 rounded-2xl p-6 shadow-2xl text-center">

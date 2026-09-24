@@ -1,4 +1,6 @@
-
+/**
+ * Loads an image from URL or dataURL into an HTMLImageElement
+ */
 export function loadImageElement(url) {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -9,7 +11,9 @@ export function loadImageElement(url) {
   });
 }
 
-
+/**
+ * Evaluates feature point density and AR trackability of an image using Sobel edge analysis
+ */
 export async function analyzeMarkerQuality(imageUrl) {
   try {
     const img = await loadImageElement(imageUrl);
@@ -23,6 +27,7 @@ export async function analyzeMarkerQuality(imageUrl) {
     let highContrastEdges = 0;
     let totalVariance = 0;
 
+    // Sobel-like edge & contrast variance metric
     for (let y = 1; y < 255; y += 2) {
       for (let x = 1; x < 255; x += 2) {
         const idx = (y * 256 + x) * 4;
@@ -59,7 +64,9 @@ export async function analyzeMarkerQuality(imageUrl) {
   }
 }
 
-
+/**
+ * Compiles an image target directly into a .mind file buffer using browser MindAR compiler
+ */
 export async function compileImageToMind(imageUrl, onProgress) {
   const img = await loadImageElement(imageUrl);
 

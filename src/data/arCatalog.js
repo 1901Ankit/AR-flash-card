@@ -8,7 +8,10 @@ import jiraiyaVideoUrl from "../assets/jiraiya.mp4?url";
 import gokuMarkerImg from "../assets/goku.png";
 import dragonMarkerImg from "../assets/dragon.jpg";
 
-const targetJiraiyaMindUrl = target1MindUrl; 
+// TODO: compile the Jiraiya card image into src/assets/marker/targetJiraiya.mind
+// (https://hiukim.github.io/mind-ar-js-doc/tools/compile) then swap this for:
+//   import targetJiraiyaMindUrl from "../assets/marker/targetJiraiya.mind?url";
+const targetJiraiyaMindUrl = target1MindUrl; // placeholder — reuses existing marker
 
 export const CATEGORIES = [
   { id: "all", label: "All Items", icon: "Sparkles" },
@@ -30,6 +33,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: gokuModelUrl,
+      targetHeight: 0.6,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
@@ -62,6 +66,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: dragonModelUrl,
+      targetHeight: 0.6,
       xOffset: 0,
       yOffset: 0.05,
       zOffset: 0,
@@ -94,7 +99,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "procedural_arena",
       name: "Cyber Arena Hologram",
-      targetHeight: 0.95,
+      targetHeight: 0.55,
     },
     audio: {
       script: "Welcome to CyberQuest 3000! Place your game board on a flat table. Scan the side panels for player stats.",
@@ -124,7 +129,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "procedural_portal",
       name: "Forest Portal",
-      targetHeight: 0.95,
+      targetHeight: 0.55,
     },
     audio: {
       script: "Deep within the emerald woods, little Maya discovered the Whispering Portal. Step through if you dare!",
@@ -161,6 +166,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: twoModelUrl,
+      targetHeight: 0.6,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
@@ -188,7 +194,7 @@ export const INITIAL_CATALOG = [
     model: {
       type: "procedural_solar",
       name: "Saturn & Ring System",
-      targetHeight: 0.95,
+      targetHeight: 0.55,
     },
   },
   {
@@ -202,10 +208,14 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: solarModelUrl,
+      targetHeight: 0.55,
     },
- 
+    // Content map: which content renders on which MindAR target index.
+    // Add a video card later by compiling a 2nd image into the .mind file and
+    // uncommenting the video entry below.
     targets: [
-      { targetIndex: 0, type: "model" }, 
+      { targetIndex: 0, type: "model" }, // solar.glb on the current card
+      // { targetIndex: 1, type: "video", src: "/card-video.mp4", aspect: 1.5, loop: true },
     ],
     audio: {
       script: "Welcome to the solar system! Tap any planet to hear its story.",
@@ -369,17 +379,19 @@ export const INITIAL_CATALOG = [
     video: {
       type: "video",
       src: jiraiyaVideoUrl,
-      fit: "cover", // fill the vertical card area
-      aspect: 0.714, // standard trading card aspect
-      rotate: 90, // rotate landscape-encoded video to vertical/portrait
-      scale: 1.0,
+      fit: "cover", // fills the card edge-to-edge, cropped — no letterboxing
       loop: true,
-      autoplay: true,
+      autoplay: true, // muted autoplay on target-found (gesture rules apply)
+      // size is auto-derived from the marker image aspect — set `aspect`
+      // (card width / height) only to override manually
     },
   },
 ];
 
-
+/**
+ * Fuzzy-match a GLB node/mesh name to a hotspot key.
+ * e.g. "Planet_Mars_01" -> "mars"
+ */
 export function matchHotspotKey(nodeName = "", hotspots = {}) {
   const normalized = nodeName.toLowerCase().replace(/[^a-z]/g, "");
   if (!normalized) return null;

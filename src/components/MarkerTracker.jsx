@@ -37,16 +37,9 @@ export default function MarkerTracker({
     let modelObject = null;
     let videoStates = []; 
     let downHandler = null;
-    let moveHandler = null;
     let upHandler = null;
-    let isDragging = false;
-    let lastPointerX = 0;
-    let lastPointerY = 0;
-    let dragDistance = 0;
     let cancelHandlerRef = () => {
-      isDragging = false;
       downPos = null;
-      dragDistance = 0;
     };
     let highlighted = null;
     let selectedTarget = null;
@@ -114,7 +107,6 @@ export default function MarkerTracker({
       const tapSurface = containerRef.current;
       if (tapSurface) {
         if (downHandler) tapSurface.removeEventListener("pointerdown", downHandler);
-        if (moveHandler) tapSurface.removeEventListener("pointermove", moveHandler);
         if (upHandler) tapSurface.removeEventListener("pointerup", upHandler);
         tapSurface.removeEventListener("pointercancel", cancelHandlerRef);
       }
@@ -198,6 +190,7 @@ export default function MarkerTracker({
           poseInit: false,
           smPos: new THREE.Vector3(),
           smQuat: new THREE.Quaternion(),
+          smScale: new THREE.Vector3(1, 1, 1),
         };
         smoothStates.push(s);
         return s;
@@ -215,13 +208,15 @@ export default function MarkerTracker({
           return;
         }
 
-        anchor.group.add(modelObject);
-
-        const baseScale = modelObject.userData?.baseScale ?? 1;
-        modelObject.scale.setScalar(baseScale);
-        window.__arBaseScale = baseScale;
+      modelObject.scale.setScalar(MODEL_BASE_SCALE);
+        window.__arBaseScale = MODEL_BASE_SCALE;
         window.__arScaleMult = 1;
 
+        const smoothGroup = new THREE.Group();
+        smoothGroup.visible = false;
+        scene.add(smoothGroup);
+        smoothGroup.add(modelObject);
+        modelState = newSmoothState(anchor, smoothGroup);
         window.__arCurrentModel = modelObject;
       }
 
@@ -264,101 +259,121 @@ export default function MarkerTracker({
 
           const tex = new THREE.VideoTexture(el);
           tex.encoding = THREE.sRGBEncoding;
+          // CRITICAL: video frames are usually non-power-of-2 — mipmapping
+          // makes the texture incomplete → plane renders black
           tex.minFilter = THREE.LinearFilter;
           tex.generateMipmaps = false;
-          let cardAspect = def.aspect || null;
-
+          // MindAR normalizes target width to 1 unit — plane width 1 spans the
+          // card exactly; height comes from the marker's aspect ratio. Start
+          // with def.aspect/fallback — corrected to the .mind file's real
+          // marker dimensions after start() below.
+          let aspect = def.aspect || 1.5;
+          // Start MAGENTA — the video texture is attached only once a frame
+          // actually decodes (videoWidth > 0). Diagnostic:
+          //   magenta rectangle on card = plane renders, codec undecodable
+          //   nothing at all            = pose/visibility issue
           const planeMat = new THREE.MeshBasicMaterial({
-            color: 0xffffff,
+            color: 0xff00ff,
             toneMapped: false,
-            depthWrite: false, 
-            side: THREE.DoubleSide, 
+            depthWrite: false, // never occludes other content
+            side: THREE.DoubleSide, // visible even if the pose flips the plane
           });
-          const plane = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), planeMat);
+          const plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(1, 1 / aspect),
+            planeMat
+          );
           plane.renderOrder = -1;
-          plane.position.z = 0.001; 
-
-          vAnchor.group.add(plane);
-          const relayout = () => {
-            const vw = el.videoWidth;
-            const vh = el.videoHeight;
-            const rotateDeg = def.rotate || 0;
-            const vaRaw = vw && vh ? vw / vh : null;
-            const va =
-              vaRaw && Math.abs(rotateDeg % 180) === 90
-                ? 1 / vaRaw
-                : vaRaw;
-            const ca = cardAspect || 0.714;
-            const fit = def.fit || "contain";
-            const sMult = def.scale || 1.0;
-            let pw = 1;
-            let ph = 1 / ca;
-            tex.repeat.set(1, 1);
-            tex.offset.set(0, 0);
-            tex.center.set(0.5, 0.5);
-            tex.rotation = (rotateDeg * Math.PI) / 180;
-
-            if (va) {
-              if (fit === "contain") {
-                if (va >= ca) {
-                  pw = 1;
-                  ph = 1 / va;
-                } else {
-                  ph = 1 / ca;
-                  pw = va / ca;
-                }
-              } else if (fit === "cover") {
-                pw = 1;
-                ph = 1 / ca;
-                if (va > ca) {
-                  tex.repeat.set(ca / va, 1); // crop left/right
-                } else if (va < ca) {
-                  tex.repeat.set(1, va / ca); // crop top/bottom
-                }
-                tex.offset.set(
-                  (1 - tex.repeat.x) / 2,
-                  (1 - tex.repeat.y) / 2
-                );
-              } else if (fit === "fill") {
-                pw = 1;
-                ph = 1 / ca;
-              }
-            }
-            plane.scale.set(pw * sMult, ph * sMult, 1);
-          };
-          relayout();
+          plane.position.z = 0.001; // hair above the card — no z-fighting
 
           const attachTexture = () => {
-            if (el.videoWidth > 0) {
-              relayout(); // intrinsic video aspect now known — re-fit
-              if (!planeMat.map) {
-                planeMat.map = tex;
-                planeMat.needsUpdate = true;
-              }
+            if (el.videoWidth > 0 && !planeMat.map) {
+              planeMat.map = tex;
+              planeMat.color.set(0xffffff);
+              planeMat.needsUpdate = true;
             }
           };
           el.addEventListener("loadedmetadata", attachTexture);
           el.addEventListener("loadeddata", attachTexture);
           el.addEventListener("canplay", attachTexture);
 
-          const state = {
-            anchor: vAnchor,
-            el,
-            tex,
-            def,
-            applyAspect: (newAspect) => {
-              if (!newAspect || Math.abs(newAspect - cardAspect) < 1e-3) return;
-              cardAspect = newAspect;
-              relayout();
-            },
+          // Crop the video texture so it fills the plane edge-to-edge
+          const applyCoverFit = () => {
+            const vw = el.videoWidth;
+            const vh = el.videoHeight;
+            if (!vw || !vh) return;
+            const videoAspect = vw / vh;
+            if (videoAspect > aspect) {
+              tex.repeat.set(aspect / videoAspect, 1); // crop left/right
+            } else {
+              tex.repeat.set(1, videoAspect / aspect); // crop top/bottom
+            }
+            tex.offset.set(
+              (1 - tex.repeat.x) / 2,
+              (1 - tex.repeat.y) / 2
+            );
+          };
+          if ((def.fit || "cover") === "cover") {
+            if (el.readyState >= 1) applyCoverFit();
+            else {
+              el.addEventListener("loadedmetadata", applyCoverFit, {
+                once: true,
+              });
+            }
+          }
+
+          const vGroup = new THREE.Group();
+          vGroup.visible = false;
+          scene.add(vGroup);
+          vGroup.add(plane);
+
+          const state = newSmoothState(vAnchor, vGroup);
+          state.el = el;
+          state.tex = tex;
+          state.def = def;
+          // Resize the plane to a new aspect and re-crop the texture
+          state.applyAspect = (newAspect) => {
+            if (!newAspect || Math.abs(newAspect - aspect) < 1e-3) return;
+            aspect = newAspect;
+            plane.geometry.dispose();
+            plane.geometry = new THREE.PlaneGeometry(1, 1 / aspect);
+            if ((def.fit || "cover") === "cover") applyCoverFit();
           };
           videoStates.push(state);
 
           vAnchor.onTargetFound = () => {
+            if (state.found) return;
+            state.found = true;
             onTargetFound?.(); // drive shared UI state for video-only items
             if (def.autoplay !== false) tryPlayVideo(el); // resume — currentTime never reset
+            // Debug: verify decode + texture wiring (remove after confirming)
+            const logVideo = (tag) =>
+              console.log(`[MarkerTracker] card-video ${tag}:`, {
+                readyState: el.readyState,
+                videoWidth: el.videoWidth,
+                videoHeight: el.videoHeight,
+                paused: el.paused,
+                currentTime: +el.currentTime.toFixed(2),
+                networkState: el.networkState,
+                error: el.error?.code ?? null,
+                texImageIsEl: tex.image === el,
+                planeVisible: vGroup.visible,
+              });
+            logVideo("target-found");
+            setTimeout(() => {
+              logVideo("+1s");
+              if (!el.paused && el.videoWidth === 0) {
+                console.warn(
+                  "[MarkerTracker] AUDIO PLAYS BUT VIDEO TRACK IS NOT DECODING " +
+                    "(videoWidth=0) — codec unsupported by this browser. " +
+                    "Re-encode: ffmpeg -i jiraiya.mp4 -c:v libx264 -profile:v main -pix_fmt yuv420p -c:a aac jiraiya-h264.mp4"
+                );
+              }
+            }, 1000);
           };
           vAnchor.onTargetLost = () => {
+            if (!state.found) return;
+            state.found = false;
+            state.lastSeenAt = performance.now();
             el.pause(); // pause only — resumes from same spot on reacquire
             onTargetLost?.();
           };
@@ -372,7 +387,7 @@ export default function MarkerTracker({
               play: () => tryPlayVideo(firstVideoEl),
               toggleMute: () => {
                 firstVideoEl.muted = !firstVideoEl.muted;
-                videoExplicitMuted = firstVideoEl.muted; 
+                videoExplicitMuted = firstVideoEl.muted; // explicit user choice
                 onVideoMutedChange?.(firstVideoEl.muted);
                 return firstVideoEl.muted;
               },
@@ -380,6 +395,7 @@ export default function MarkerTracker({
           : null;
       }
 
+      // Log every node name so hotspot keys can be verified against the GLB
       if (modelObject) {
         const nodeNames = [];
         modelObject.traverse((child) => {
@@ -388,6 +404,7 @@ export default function MarkerTracker({
         console.log("[MarkerTracker] Model node names:", nodeNames);
       }
 
+      // --- Planet registry: top-level named nodes matching hotspot keys ---
       const planetRegistry = [];
       if (hotspots && modelObject) {
         const registered = new Set();
@@ -395,6 +412,7 @@ export default function MarkerTracker({
           if (!child.name || registered.has(child)) return;
           const key = matchHotspotKey(child.name, hotspots);
           if (!key) return;
+          // Keep only top-level matches — skip nodes nested under a registered planet
           let anc = child.parent;
           let nested = false;
           while (anc && anc !== modelObject) {
@@ -409,6 +427,9 @@ export default function MarkerTracker({
           planetRegistry.push({ key, name: child.name, object3D: child });
         });
 
+        // Coverage pass: if some/all nodes didn't match a key, register the
+        // sibling mesh-bearing children of the shallowest "split" node so every
+        // planet is still independently tappable (generic panel via name fallback)
         const hasMesh = (node) => {
           let found = false;
           node.traverse((c) => {
@@ -439,6 +460,7 @@ export default function MarkerTracker({
           });
         }
 
+        // World-space bounding sphere per planet (tap fallback + highlight sizing)
         modelObject.updateMatrixWorld(true);
         const tmpScale = new THREE.Vector3();
         planetRegistry.forEach((p) => {
@@ -454,6 +476,7 @@ export default function MarkerTracker({
         );
       }
 
+      // --- Selection highlight: pulsing emissive tint (no transform changes) ---
       const clearHighlight = () => {
         if (!highlighted) return;
         highlighted.originals.forEach(({ mat, emissive, intensity }) => {
@@ -470,6 +493,7 @@ export default function MarkerTracker({
         const originals = [];
         root.traverse((child) => {
           if (!child.isMesh || !child.material || Array.isArray(child.material)) return;
+          // Clone once so shared materials aren't permanently tinted
           if (!child.userData.__hlCloned) {
             child.material = child.material.clone();
             child.userData.__hlCloned = true;
@@ -497,12 +521,14 @@ export default function MarkerTracker({
         pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(pointer, camera);
 
+        // Raycast the model; empty space / card background yields no hits
         const hits = raycaster.intersectObject(modelObject, true);
 
         let entry = null;
         let target = null;
 
         if (hits.length > 0) {
+          // Walk up to the nearest registered planet root
           let obj = hits[0].object;
           while (obj && obj !== modelObject) {
             entry = planetRegistry.find((p) => p.object3D === obj) || null;
@@ -512,6 +538,7 @@ export default function MarkerTracker({
           if (entry) {
             target = entry.object3D;
           } else {
+            // Fallback: nearest named ancestor (hotspot key match wins)
             obj = hits[0].object;
             while (obj && obj !== modelObject) {
               if (obj.name) {
@@ -528,6 +555,7 @@ export default function MarkerTracker({
           }
         }
 
+        // Screen-space fallback: nearest planet center within its projected radius
         if (!target && planetRegistry.length) {
           const tapX = event.clientX - rect.left;
           const tapY = event.clientY - rect.top;
@@ -568,7 +596,7 @@ export default function MarkerTracker({
 
         if (!target) {
           console.log("[MarkerTracker] Tap ignored — no planet under tap point");
-          return; 
+          return; // empty space / unnamed object — ignore
         }
 
         console.log(
@@ -578,10 +606,12 @@ export default function MarkerTracker({
           entry?.name ?? target.name
         );
 
+        // Guard: ignore taps within 150ms of the previous accepted tap
         const now = performance.now();
         if (now - lastTapTime < 150) return;
         lastTapTime = now;
 
+        // Same planet re-tapped: keep highlight, just re-fire narration
         if (selectedTarget === target) {
           onHotspotTap?.(entry?.key ?? null, entry?.name ?? target.name);
           return;
@@ -591,8 +621,11 @@ export default function MarkerTracker({
         onHotspotTap?.(entry?.key ?? null, entry?.name ?? target.name);
       };
 
+      // Tap vs drag: only a short, nearly-stationary press counts as a select
       downHandler = (e) => {
-      
+        // First tap on the AR surface = the browser's required user gesture:
+        // unmute the card video (unless the user explicitly muted it) and
+        // retry play() in case autoplay was blocked earlier.
         if (firstVideoEl && !videoGestureUnlocked) {
           videoGestureUnlocked = true;
           if (!videoExplicitMuted) {
@@ -601,58 +634,41 @@ export default function MarkerTracker({
           }
           tryPlayVideo(firstVideoEl);
         }
-        isDragging = true;
-        lastPointerX = e.clientX;
-        lastPointerY = e.clientY;
-        dragDistance = 0;
         downPos = { x: e.clientX, y: e.clientY, t: performance.now() };
       };
-
-      moveHandler = (e) => {
-        if (!isDragging) return;
-        const dx = e.clientX - lastPointerX;
-        const dy = e.clientY - lastPointerY;
-        lastPointerX = e.clientX;
-        lastPointerY = e.clientY;
-        dragDistance += Math.hypot(dx, dy);
-
-        if (modelObject && dragDistance > 4) {
-          modelObject.rotation.y += dx * 0.008;
-        }
-      };
-
       upHandler = (e) => {
         if (!downPos) return;
+        const dx = e.clientX - downPos.x;
+        const dy = e.clientY - downPos.y;
         const dt = performance.now() - downPos.t;
-        const wasTap = dragDistance < 8 && dt <= 300;
-        isDragging = false;
         downPos = null;
-        dragDistance = 0;
-
-        if (wasTap) {
-          handleTap(e);
-        }
+        if (Math.hypot(dx, dy) > 8 || dt > 300) return; // drag, not a tap
+        handleTap(e);
       };
-
-    
+      // Listen on the container — MindAR's <video> sits on top of the canvas,
+      // so canvas-level listeners would never fire. Events bubble up here.
       const tapSurface = containerRef.current;
       tapSurface.addEventListener("pointerdown", downHandler);
-      tapSurface.addEventListener("pointermove", moveHandler);
       tapSurface.addEventListener("pointerup", upHandler);
       tapSurface.addEventListener("pointercancel", cancelHandlerRef);
 
-      if (anchor && modelObject) {
+      if (anchor && modelState) {
         anchor.onTargetFound = () => {
+          if (modelState.found) return;
+          modelState.found = true;
+          // Re-apply default scale baseline × current user multiplier
           if (modelObject) {
-            modelObject.visible = true;
             modelObject.scale.setScalar(
-              (window.__arBaseScale ?? 1) * (window.__arScaleMult ?? 1)
+              (window.__arBaseScale ?? MODEL_BASE_SCALE) *
+                (window.__arScaleMult ?? 1)
             );
           }
           onTargetFound?.();
         };
         anchor.onTargetLost = () => {
-          if (modelObject) modelObject.visible = false;
+          if (!modelState.found) return;
+          modelState.found = false;
+          modelState.lastSeenAt = performance.now();
           onTargetLost?.();
         };
       }
@@ -664,7 +680,9 @@ export default function MarkerTracker({
         return;
       }
 
-
+      // Snap video planes to the REAL marker dimensions baked into the .mind
+      // file ([width, height] px per target) — covers the card edge-to-edge,
+      // portrait or landscape. Skipped when the item sets an explicit `aspect`.
       const markerDims = mindarThree.controller?.markerDimensions;
       if (Array.isArray(markerDims)) {
         console.log("[MarkerTracker] .mind marker dimensions:", markerDims);
@@ -676,15 +694,25 @@ export default function MarkerTracker({
         });
       }
 
+      // --- Pose smoothing state (kills MindAR per-frame jitter) ---
       const rawPos = new THREE.Vector3();
       const rawQuat = new THREE.Quaternion();
       const rawScale = new THREE.Vector3();
+      const POS_EPS = 0.006; // dead-zone: ignore micro position noise
+      const ROT_EPS = 0.015; // dead-zone: ignore micro rotation noise (~0.9°)
+      const POS_RANGE = 0.05; // delta at which tracking becomes fully responsive
+      const ROT_RANGE = 0.12;
+      const MIN_ALPHA = 0.04; // near-frozen for tiny deltas (jitter)
+      const MAX_ALPHA = 0.4; // responsive for real card movement
+      const SCALE_ALPHA = 0.15; // low-pass on scale so size doesn't shimmer
 
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
         const now = performance.now();
 
+        
         for (const s of smoothStates) {
+      
           const tracked = s.found || now - s.lastSeenAt < 500;
           s.group.visible = tracked;
           if (!tracked) {
@@ -692,20 +720,37 @@ export default function MarkerTracker({
             continue;
           }
 
+
           s.anchor.group.matrixWorld.decompose(rawPos, rawQuat, rawScale);
           if (rawScale.lengthSq() <= 1e-10) continue;
 
           if (!s.poseInit) {
             s.smPos.copy(rawPos);
             s.smQuat.copy(rawQuat);
+            s.smScale.copy(rawScale);
             s.poseInit = true;
           } else {
-            s.smPos.lerp(rawPos, 0.4);
-            s.smQuat.slerp(rawQuat, 0.4);
+            const dist = s.smPos.distanceTo(rawPos);
+            if (dist > POS_EPS) {
+              const a =
+                MIN_ALPHA +
+                (MAX_ALPHA - MIN_ALPHA) *
+                  Math.min(1, (dist - POS_EPS) / POS_RANGE);
+              s.smPos.lerp(rawPos, a);
+            }
+            const ang = s.smQuat.angleTo(rawQuat);
+            if (ang > ROT_EPS) {
+              const a =
+                MIN_ALPHA +
+                (MAX_ALPHA - MIN_ALPHA) *
+                  Math.min(1, (ang - ROT_EPS) / ROT_RANGE);
+              s.smQuat.slerp(rawQuat, a);
+            }
+            s.smScale.lerp(rawScale, SCALE_ALPHA);
           }
           s.group.position.copy(s.smPos);
           s.group.quaternion.copy(s.smQuat);
-          s.group.scale.copy(rawScale);
+          s.group.scale.copy(s.smScale);
         }
 
      
@@ -715,6 +760,7 @@ export default function MarkerTracker({
           }
         }
 
+        // Pulse the selected planet's emissive highlight (material-only, no transforms)
         if (highlighted) {
           highlighted.t += delta;
           const pulse = 0.35 + 0.25 * Math.sin(highlighted.t * 4);
