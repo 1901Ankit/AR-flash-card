@@ -13,17 +13,14 @@ export default function PrintExporter({ item, onClose }) {
     window.print();
   };
 
-  // Direct QR Code generation URL (using fast reliable API)
   const qrTargetUrl = typeof window !== "undefined" ? window.location.origin : "https://ar-flash-card.app";
   const qrCodeApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
     `${qrTargetUrl}?item=${item.id}`
   )}`;
 
-  // Safe image loader that avoids canvas tainting (CORS)
   const loadSafeImage = async (src) => {
     if (!src) return null;
     try {
-      // First try fetching as blob to prevent tainted canvas
       const res = await fetch(src, { mode: "cors" });
       if (res.ok) {
         const blob = await res.blob();
@@ -38,7 +35,6 @@ export default function PrintExporter({ item, onClose }) {
         });
       }
     } catch {
-      // Ignore and fallback to direct crossOrigin load
     }
 
     return new Promise((resolve) => {
@@ -63,11 +59,9 @@ export default function PrintExporter({ item, onClose }) {
       canvas.width = width;
       canvas.height = height;
 
-      // Background
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
 
-      // Outer Border & Crop Marks
       ctx.strokeStyle = "#cbd5e1";
       ctx.lineWidth = 4;
       ctx.strokeRect(30, 30, width - 60, height - 60);
@@ -77,17 +71,14 @@ export default function PrintExporter({ item, onClose }) {
       ctx.fillText("✂ CROP LINE", 45, 55);
       ctx.fillText("AR FLASHCARD PRINT SHEET", width - 290, 55);
 
-      // 1. Draw Marker Box
       ctx.fillStyle = "#0f172a";
       ctx.fillRect(70, 90, 420, 560);
 
-      // Marker header label
       ctx.fillStyle = "#ffffff";
       ctx.font = "bold 18px sans-serif";
       ctx.textAlign = "center";
       ctx.fillText(item.title.toUpperCase(), 280, 125);
 
-      // Marker Image
       const markerImg = await loadSafeImage(item.markerPreview);
       if (markerImg) {
         try {
@@ -103,7 +94,6 @@ export default function PrintExporter({ item, onClose }) {
       ctx.font = "bold 14px sans-serif";
       ctx.fillText("★ POINT PHONE CAMERA HERE ★", 280, 615);
 
-      // 2. Right Side Packaging & Details
       ctx.textAlign = "left";
       ctx.fillStyle = "#7c3aed";
       ctx.font = "bold 16px sans-serif";
@@ -117,7 +107,6 @@ export default function PrintExporter({ item, onClose }) {
       ctx.font = "italic 18px sans-serif";
       ctx.fillText(item.tagline || "Interactive AR Series", 540, 205);
 
-      // Description text wrapping
       ctx.fillStyle = "#334155";
       ctx.font = "16px sans-serif";
       const desc = item.description || "Scan this card marker to summon interactive 3D model and voice narration.";
@@ -137,7 +126,6 @@ export default function PrintExporter({ item, onClose }) {
       }
       ctx.fillText(line, 540, y);
 
-      // 3. QR Code & Instructions Box
       ctx.fillStyle = "#f8fafc";
       ctx.strokeStyle = "#cbd5e1";
       ctx.lineWidth = 2;
@@ -149,7 +137,7 @@ export default function PrintExporter({ item, onClose }) {
         try {
           ctx.drawImage(qrImg, 560, 460, 170, 170);
         } catch {
-          // QR fallback
+          
         }
       }
 
@@ -163,12 +151,10 @@ export default function PrintExporter({ item, onClose }) {
       ctx.fillText("2. Allow browser camera permission.", 750, 560);
       ctx.fillText("3. Point phone at the image on the left!", 750, 590);
 
-      // Export as Blob for robust mobile support
       const blob = await new Promise((resolve) => {
         try {
           canvas.toBlob((b) => resolve(b), "image/png", 0.95);
         } catch {
-          // Fallback if canvas is tainted
           try {
             const dataUrl = canvas.toDataURL("image/png");
             fetch(dataUrl).then((r) => r.blob()).then(resolve).catch(() => resolve(null));
@@ -184,7 +170,6 @@ export default function PrintExporter({ item, onClose }) {
         const blobUrl = URL.createObjectURL(blob);
         setPreviewUrl(blobUrl);
 
-        // Try Mobile Web Share API first (Native iOS / Android Photos / Files save)
         const file = new File([blob], filename, { type: "image/png" });
         if (navigator.canShare && navigator.canShare({ files: [file] })) {
           try {
@@ -198,13 +183,11 @@ export default function PrintExporter({ item, onClose }) {
             return;
           } catch (shareErr) {
             if (shareErr.name === "AbortError") {
-              // User cancelled share dialog
               return;
             }
           }
         }
 
-        // Standard link download fallback
         const link = document.createElement("a");
         link.download = filename;
         link.href = blobUrl;
@@ -219,7 +202,6 @@ export default function PrintExporter({ item, onClose }) {
         sfx.playSuccess();
         setDownloadSuccess(true);
       } else {
-        // Direct dataURL fallback
         const dataUrl = canvas.toDataURL("image/png");
         setPreviewUrl(dataUrl);
         const link = document.createElement("a");
@@ -250,7 +232,6 @@ export default function PrintExporter({ item, onClose }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
       <div className="relative w-full max-w-3xl bg-[#141824] border border-slate-700 rounded-2xl shadow-2xl p-6 text-slate-100 max-h-[92vh] overflow-y-auto">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-800 pb-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-slate-800 border border-slate-700 text-violet-400">
@@ -273,19 +254,16 @@ export default function PrintExporter({ item, onClose }) {
           </button>
         </div>
 
-        {/* Printable Card Area */}
         <div
           ref={printAreaRef}
           id="printable-ar-sheet"
           className="bg-white text-black p-4 sm:p-6 rounded-2xl shadow-lg border-2 border-dashed border-slate-300 relative overflow-hidden"
           style={{ minHeight: "340px" }}
         >
-          {/* Bleed / Crop Marks */}
           <div className="absolute top-2 left-2 text-[9px] sm:text-[10px] text-slate-400 font-mono">✂ CROP LINE</div>
           <div className="absolute top-2 right-2 text-[9px] sm:text-[10px] text-slate-400 font-mono">AR MARKER V1.0</div>
 
           <div className="flex flex-col md:flex-row gap-5 sm:gap-6 items-center justify-between mt-4">
-            {/* 2D AR Marker Image */}
             <div className="flex flex-col items-center w-full sm:w-auto">
               <div className="w-full max-w-[220px] sm:w-56 h-64 sm:h-72 rounded-xl border-4 border-black p-2 bg-slate-50 flex flex-col items-center justify-between relative shadow-md">
                 <div className="w-full text-center py-1 bg-black text-white rounded font-bold text-[11px] sm:text-xs uppercase tracking-wider truncate px-1">
@@ -306,7 +284,6 @@ export default function PrintExporter({ item, onClose }) {
               </span>
             </div>
 
-            {/* Packaging Back / Instructions & QR */}
             <div className="flex-1 w-full flex flex-col justify-between min-h-[240px] sm:h-72 border-t md:border-t-0 md:border-l border-slate-200 md:pl-6 pt-4 md:pt-0">
               <div>
                 <div className="inline-block px-2.5 py-0.5 rounded text-[10px] sm:text-xs font-bold uppercase bg-violet-100 text-violet-800 mb-2">
@@ -317,7 +294,6 @@ export default function PrintExporter({ item, onClose }) {
                 <p className="text-xs text-slate-700 mt-2 sm:mt-3 leading-relaxed">{item.description}</p>
               </div>
 
-              {/* Dynamic QR Code & Instructions */}
               <div className="mt-4 pt-3 border-t border-slate-200 flex items-center gap-3 sm:gap-4 bg-slate-50 p-2.5 sm:p-3 rounded-xl">
                 <img
                   src={qrCodeApiUrl}
@@ -340,7 +316,6 @@ export default function PrintExporter({ item, onClose }) {
           </div>
         </div>
 
-        {/* Success / Mobile Save Helper Box */}
         {previewUrl && (
           <div className="mt-4 p-3 bg-violet-950/40 border border-violet-800/50 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-2">
             <div className="text-xs text-violet-200 flex items-center gap-1.5">
@@ -358,7 +333,6 @@ export default function PrintExporter({ item, onClose }) {
           </div>
         )}
 
-        {/* Actions */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-6 pt-4 border-t border-slate-800">
           <div className="flex items-center gap-2 text-xs text-slate-400">
             <CheckCircle2 className="w-4 h-4 text-emerald-400" /> Automated CMYK 300 DPI Export Ready

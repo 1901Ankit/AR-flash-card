@@ -23,9 +23,7 @@ export default function AROverlayUI({
   const hasVideoTarget =
     item?.targets?.some((t) => t.type === "video") || !!item?.video;
 
-  // Scale +/- adjusts a multiplier on the model's default baseline scale
-  // (window.__arBaseScale, set by MarkerTracker) — clamped so the model can
-  // never go invisible or absurdly huge
+
   const SCALE_STEP = 0.1;
   const SCALE_MIN = 0.5;
   const SCALE_MAX = 3.0;
@@ -53,7 +51,6 @@ export default function AROverlayUI({
     };
   }, []);
 
-  // When target is detected for the first time, auto-narrate
   useEffect(() => {
     if (isTargetFound && item?.audio?.script) {
       tts.speak(item.audio.script, {
@@ -65,8 +62,7 @@ export default function AROverlayUI({
     }
   }, [isTargetFound, item]);
 
-  // When a planet/hotspot is tapped, narrate its script exactly once per selection
-  // (selId guards against StrictMode double-effects; a deliberate re-tap gets a new selId)
+
   useEffect(() => {
     if (activeHotspot?.script && activeHotspot.selId !== lastSpokenRef.current) {
       lastSpokenRef.current = activeHotspot.selId;

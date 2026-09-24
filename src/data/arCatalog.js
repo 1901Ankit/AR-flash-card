@@ -8,10 +8,7 @@ import jiraiyaVideoUrl from "../assets/jiraiya.mp4?url";
 import gokuMarkerImg from "../assets/goku.png";
 import dragonMarkerImg from "../assets/dragon.jpg";
 
-// TODO: compile the Jiraiya card image into src/assets/marker/targetJiraiya.mind
-// (https://hiukim.github.io/mind-ar-js-doc/tools/compile) then swap this for:
-//   import targetJiraiyaMindUrl from "../assets/marker/targetJiraiya.mind?url";
-const targetJiraiyaMindUrl = target1MindUrl; // placeholder — reuses existing marker
+const targetJiraiyaMindUrl = target1MindUrl; 
 
 export const CATEGORIES = [
   { id: "all", label: "All Items", icon: "Sparkles" },
@@ -33,7 +30,6 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: gokuModelUrl,
-      scale: 1,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
@@ -66,7 +62,6 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: dragonModelUrl,
-      scale: 1,
       xOffset: 0,
       yOffset: 0.05,
       zOffset: 0,
@@ -166,7 +161,6 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: twoModelUrl,
-      scale: 1,
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
@@ -208,14 +202,10 @@ export const INITIAL_CATALOG = [
     model: {
       type: "glb",
       url: solarModelUrl,
-      scale: 1,
     },
-    // Content map: which content renders on which MindAR target index.
-    // Add a video card later by compiling a 2nd image into the .mind file and
-    // uncommenting the video entry below.
+ 
     targets: [
-      { targetIndex: 0, type: "model" }, // solar.glb on the current card
-      // { targetIndex: 1, type: "video", src: "/card-video.mp4", aspect: 1.5, loop: true },
+      { targetIndex: 0, type: "model" }, 
     ],
     audio: {
       script: "Welcome to the solar system! Tap any planet to hear its story.",
@@ -379,19 +369,16 @@ export const INITIAL_CATALOG = [
     video: {
       type: "video",
       src: jiraiyaVideoUrl,
-      fit: "contain", // fits within card boundaries without overflow or distortion
-      aspect: 0.714, // standard trading card aspect ratio (2.5 / 3.5 inches)
+      fit: "contain", 
+      aspect: 0.714, 
       scale: 1.0,
       loop: true,
-      autoplay: true, // muted autoplay on target-found (gesture rules apply)
+      autoplay: true, 
     },
   },
 ];
 
-/**
- * Fuzzy-match a GLB node/mesh name to a hotspot key.
- * e.g. "Planet_Mars_01" -> "mars"
- */
+
 export function matchHotspotKey(nodeName = "", hotspots = {}) {
   const normalized = nodeName.toLowerCase().replace(/[^a-z]/g, "");
   if (!normalized) return null;

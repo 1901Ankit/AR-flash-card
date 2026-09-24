@@ -215,8 +215,6 @@ export default function MarkerTracker({
           return;
         }
 
-        // Attach GLB model directly to the tracked anchor group so it inherits
-        // MindAR's pose exactly, with no custom smoothing causing micro vibrations.
         anchor.group.add(modelObject);
 
         const baseScale = modelObject.userData?.baseScale ?? 1;
@@ -297,11 +295,9 @@ export default function MarkerTracker({
             if (va) {
               if (fit === "contain") {
                 if (va >= ca) {
-                  // Video is wider than card -> width spans card, height shrinks
                   pw = 1;
                   ph = 1 / va;
                 } else {
-                  // Video is taller than card -> height spans card, width shrinks
                   ph = 1 / ca;
                   pw = va / ca;
                 }
@@ -370,7 +366,7 @@ export default function MarkerTracker({
               play: () => tryPlayVideo(firstVideoEl),
               toggleMute: () => {
                 firstVideoEl.muted = !firstVideoEl.muted;
-                videoExplicitMuted = firstVideoEl.muted; // explicit user choice
+                videoExplicitMuted = firstVideoEl.muted; 
                 onVideoMutedChange?.(firstVideoEl.muted);
                 return firstVideoEl.muted;
               },
@@ -378,7 +374,6 @@ export default function MarkerTracker({
           : null;
       }
 
-      // Log every node name so hotspot keys can be verified against the GLB
       if (modelObject) {
         const nodeNames = [];
         modelObject.traverse((child) => {
@@ -387,7 +382,6 @@ export default function MarkerTracker({
         console.log("[MarkerTracker] Model node names:", nodeNames);
       }
 
-      // --- Planet registry: top-level named nodes matching hotspot keys ---
       const planetRegistry = [];
       if (hotspots && modelObject) {
         const registered = new Set();
@@ -395,7 +389,6 @@ export default function MarkerTracker({
           if (!child.name || registered.has(child)) return;
           const key = matchHotspotKey(child.name, hotspots);
           if (!key) return;
-          // Keep only top-level matches — skip nodes nested under a registered planet
           let anc = child.parent;
           let nested = false;
           while (anc && anc !== modelObject) {
@@ -410,9 +403,6 @@ export default function MarkerTracker({
           planetRegistry.push({ key, name: child.name, object3D: child });
         });
 
-        // Coverage pass: if some/all nodes didn't match a key, register the
-        // sibling mesh-bearing children of the shallowest "split" node so every
-        // planet is still independently tappable (generic panel via name fallback)
         const hasMesh = (node) => {
           let found = false;
           node.traverse((c) => {
@@ -443,7 +433,6 @@ export default function MarkerTracker({
           });
         }
 
-        // World-space bounding sphere per planet (tap fallback + highlight sizing)
         modelObject.updateMatrixWorld(true);
         const tmpScale = new THREE.Vector3();
         planetRegistry.forEach((p) => {
@@ -459,7 +448,6 @@ export default function MarkerTracker({
         );
       }
 
-      // --- Selection highlight: pulsing emissive tint (no transform changes) ---
       const clearHighlight = () => {
         if (!highlighted) return;
         highlighted.originals.forEach(({ mat, emissive, intensity }) => {
@@ -476,7 +464,6 @@ export default function MarkerTracker({
         const originals = [];
         root.traverse((child) => {
           if (!child.isMesh || !child.material || Array.isArray(child.material)) return;
-          // Clone once so shared materials aren't permanently tinted
           if (!child.userData.__hlCloned) {
             child.material = child.material.clone();
             child.userData.__hlCloned = true;
@@ -504,14 +491,12 @@ export default function MarkerTracker({
         pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
         raycaster.setFromCamera(pointer, camera);
 
-        // Raycast the model; empty space / card background yields no hits
         const hits = raycaster.intersectObject(modelObject, true);
 
         let entry = null;
         let target = null;
 
         if (hits.length > 0) {
-          // Walk up to the nearest registered planet root
           let obj = hits[0].object;
           while (obj && obj !== modelObject) {
             entry = planetRegistry.find((p) => p.object3D === obj) || null;
@@ -521,7 +506,6 @@ export default function MarkerTracker({
           if (entry) {
             target = entry.object3D;
           } else {
-            // Fallback: nearest named ancestor (hotspot key match wins)
             obj = hits[0].object;
             while (obj && obj !== modelObject) {
               if (obj.name) {
@@ -538,7 +522,6 @@ export default function MarkerTracker({
           }
         }
 
-        // Screen-space fallback: nearest planet center within its projected radius
         if (!target && planetRegistry.length) {
           const tapX = event.clientX - rect.left;
           const tapY = event.clientY - rect.top;
@@ -579,7 +562,7 @@ export default function MarkerTracker({
 
         if (!target) {
           console.log("[MarkerTracker] Tap ignored — no planet under tap point");
-          return; // empty space / unnamed object — ignore
+          return; 
         }
 
         console.log(
@@ -589,12 +572,10 @@ export default function MarkerTracker({
           entry?.name ?? target.name
         );
 
-        // Guard: ignore taps within 150ms of the previous accepted tap
         const now = performance.now();
         if (now - lastTapTime < 150) return;
         lastTapTime = now;
 
-        // Same planet re-tapped: keep highlight, just re-fire narration
         if (selectedTarget === target) {
           onHotspotTap?.(entry?.key ?? null, entry?.name ?? target.name);
           return;
@@ -604,11 +585,8 @@ export default function MarkerTracker({
         onHotspotTap?.(entry?.key ?? null, entry?.name ?? target.name);
       };
 
-      // Pointer interaction: drag/swipe rotates the 3D model; short stationary tap selects
       downHandler = (e) => {
-        // First tap on the AR surface = the browser's required user gesture:
-        // unmute the card video (unless the user explicitly muted it) and
-        // retry play() in case autoplay was blocked earlier.
+      
         if (firstVideoEl && !videoGestureUnlocked) {
           videoGestureUnlocked = true;
           if (!videoExplicitMuted) {
@@ -633,7 +611,6 @@ export default function MarkerTracker({
         dragDistance += Math.hypot(dx, dy);
 
         if (modelObject && dragDistance > 4) {
-          // Horizontal swipe/drag rotates model around Y-axis smoothly
           modelObject.rotation.y += dx * 0.008;
         }
       };
@@ -651,8 +628,7 @@ export default function MarkerTracker({
         }
       };
 
-      // Listen on the container — MindAR's <video> sits on top of the canvas,
-      // so canvas-level listeners would never fire. Events bubble up here.
+    
       const tapSurface = containerRef.current;
       tapSurface.addEventListener("pointerdown", downHandler);
       tapSurface.addEventListener("pointermove", moveHandler);
@@ -663,7 +639,6 @@ export default function MarkerTracker({
         anchor.onTargetFound = () => {
           if (modelObject) {
             modelObject.visible = true;
-            // Re-apply default scale baseline × current user multiplier
             modelObject.scale.setScalar(
               (window.__arBaseScale ?? 1) * (window.__arScaleMult ?? 1)
             );
@@ -683,9 +658,7 @@ export default function MarkerTracker({
         return;
       }
 
-      // Snap video planes to the REAL marker dimensions baked into the .mind
-      // file ([width, height] px per target) — covers the card edge-to-edge,
-      // portrait or landscape. Skipped when the item sets an explicit `aspect`.
+
       const markerDims = mindarThree.controller?.markerDimensions;
       if (Array.isArray(markerDims)) {
         console.log("[MarkerTracker] .mind marker dimensions:", markerDims);
@@ -697,7 +670,6 @@ export default function MarkerTracker({
         });
       }
 
-      // --- Pose smoothing state (responsive, no tilt freeze) ---
       const rawPos = new THREE.Vector3();
       const rawQuat = new THREE.Quaternion();
       const rawScale = new THREE.Vector3();
@@ -737,7 +709,6 @@ export default function MarkerTracker({
           }
         }
 
-        // Pulse the selected planet's emissive highlight (material-only, no transforms)
         if (highlighted) {
           highlighted.t += delta;
           const pulse = 0.35 + 0.25 * Math.sin(highlighted.t * 4);

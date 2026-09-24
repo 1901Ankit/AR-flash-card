@@ -56,7 +56,6 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
       if (key && map[key]) {
         setActiveHotspot({ key, selId: Date.now(), ...map[key] });
       } else if (name) {
-        // Fallback: tapped a named object that isn't in the hotspot map
         const pretty = name.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim();
         setActiveHotspot({
           key: null,
@@ -71,11 +70,6 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
   );
 
   const handleCloseHotspot = useCallback(() => setActiveHotspot(null), []);
-
-  // Content map for this item's marker session:
-  // - item.targets (explicit multi-target map) wins
-  // - item.video → single video plane on target index 0
-  // - otherwise MarkerTracker defaults to the 3D model on target index 0
   const derivedTargets =
     activeItem.targets ??
     (activeItem.video ? [{ targetIndex: 0, ...activeItem.video }] : undefined);
@@ -113,7 +107,6 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
         onVideoNeedsGesture={setVideoNeedsGesture}
       />
 
-      {/* Interactive AR Overlay HUD */}
       <AROverlayUI
         item={activeItem}
         isTargetFound={isTargetFound}
