@@ -386,11 +386,11 @@ export const INITIAL_CATALOG = [
     video: {
       type: "video",
       src: jiraiyaVideoUrl,
-      fit: "cover", // fills the card edge-to-edge, cropped — no letterboxing
+      fit: "contain", // fits within card boundaries without overflow or distortion
+      aspect: 0.714, // standard trading card aspect ratio (2.5 / 3.5 inches)
+      scale: 1.0,
       loop: true,
       autoplay: true, // muted autoplay on target-found (gesture rules apply)
-      // size is auto-derived from the marker image aspect — set `aspect`
-      // (card width / height) only to override manually
     },
   },
 ];

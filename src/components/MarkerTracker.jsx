@@ -262,22 +262,12 @@ export default function MarkerTracker({
           // makes the texture incomplete → plane renders black
           tex.minFilter = THREE.LinearFilter;
           tex.generateMipmaps = false;
-          // MindAR normalizes target width to 1 unit — a plane of width 1
-          // spans the card exactly; height = cardHeight / cardWidth. The real
-          // card aspect is resolved in priority order:
-          //   1. explicit def.aspect
-          //   2. marker dimensions baked into the .mind file (applied via
-          //      state.applyAspect after start() resolves below)
-          //   3. the video's own aspect — last-resort fallback so the video
-          //      can never render stretched even if marker dims are missing
+          // Standard trading card aspect ratio is ~0.714 (2.5 x 3.5 in)
+          // Priority: 1. explicit def.aspect, 2. .mind marker dims, 3. video aspect / default
           let cardAspect = def.aspect || null;
 
-          // Start MAGENTA — the video texture is attached only once a frame
-          // actually decodes (videoWidth > 0). Diagnostic:
-          //   magenta rectangle on card = plane renders, codec undecodable
-          //   nothing at all            = pose/visibility issue
           const planeMat = new THREE.MeshBasicMaterial({
-            color: 0xff00ff,
+            color: 0xffffff,
             toneMapped: false,
             depthWrite: false, // never occludes other content
             side: THREE.DoubleSide, // visible even if the pose flips the plane
@@ -286,37 +276,57 @@ export default function MarkerTracker({
           plane.renderOrder = -1;
           plane.position.z = 0.001; // hair above the card — no z-fighting
 
+          // Attach plane directly to the anchor group so it is locked to the
+          // tracked marker without any secondary tilt lag or dead-zone freeze.
+          vAnchor.group.add(plane);
+
           // Size the plane + texture so the video maps onto the card without
           // stretching, per the requested object-fit:
-          //   cover   → plane spans the whole card; the texture is center-cropped
-          //             via repeat/offset to fill it, preserving video aspect
-          //   contain → texture is untouched; the plane shrinks to the largest
-          //             video-aspect rectangle that fits inside the card
+          //   contain → fits completely inside card width & height (no overflow, no cropping)
+          //   cover   → plane spans the whole card; texture is center-cropped to fill
+          //   fill    → exact stretch to card boundaries
           const relayout = () => {
             const va =
               el.videoWidth && el.videoHeight
                 ? el.videoWidth / el.videoHeight
                 : null;
-            const ca = cardAspect || va || 1;
-            const fit = def.fit || "cover";
+            const ca = cardAspect || 0.714;
+            const fit = def.fit || "contain";
+            const sMult = def.scale || 1.0;
             let pw = 1;
             let ph = 1 / ca;
             tex.repeat.set(1, 1);
             tex.offset.set(0, 0);
+
             if (va) {
               if (fit === "contain") {
-                if (va >= ca) ph = 1 / va;
-                else pw = va / ca;
-              } else {
-                if (va > ca) tex.repeat.set(ca / va, 1); // crop left/right
-                else if (va < ca) tex.repeat.set(1, va / ca); // crop top/bottom
+                if (va >= ca) {
+                  // Video is wider than card -> width spans card, height shrinks
+                  pw = 1;
+                  ph = 1 / va;
+                } else {
+                  // Video is taller than card -> height spans card, width shrinks
+                  ph = 1 / ca;
+                  pw = va / ca;
+                }
+              } else if (fit === "cover") {
+                pw = 1;
+                ph = 1 / ca;
+                if (va > ca) {
+                  tex.repeat.set(ca / va, 1); // crop left/right
+                } else if (va < ca) {
+                  tex.repeat.set(1, va / ca); // crop top/bottom
+                }
                 tex.offset.set(
                   (1 - tex.repeat.x) / 2,
                   (1 - tex.repeat.y) / 2
                 );
+              } else if (fit === "fill") {
+                pw = 1;
+                ph = 1 / ca;
               }
             }
-            plane.scale.set(pw, ph, 1);
+            plane.scale.set(pw * sMult, ph * sMult, 1);
           };
           relayout();
 
@@ -325,7 +335,6 @@ export default function MarkerTracker({
               relayout(); // intrinsic video aspect now known — re-fit
               if (!planeMat.map) {
                 planeMat.map = tex;
-                planeMat.color.set(0xffffff);
                 planeMat.needsUpdate = true;
               }
             }
@@ -334,57 +343,24 @@ export default function MarkerTracker({
           el.addEventListener("loadeddata", attachTexture);
           el.addEventListener("canplay", attachTexture);
 
-          const vGroup = new THREE.Group();
-          vGroup.visible = false;
-          scene.add(vGroup);
-          vGroup.add(plane);
-
-          const state = newSmoothState(vAnchor, vGroup);
-          state.el = el;
-          state.tex = tex;
-          state.def = def;
-          // Snap the plane to a new card aspect and re-fit the texture
-          state.applyAspect = (newAspect) => {
-            if (!newAspect || newAspect === cardAspect) return;
-            cardAspect = newAspect;
-            relayout();
+          const state = {
+            anchor: vAnchor,
+            el,
+            tex,
+            def,
+            applyAspect: (newAspect) => {
+              if (!newAspect || Math.abs(newAspect - cardAspect) < 1e-3) return;
+              cardAspect = newAspect;
+              relayout();
+            },
           };
           videoStates.push(state);
 
           vAnchor.onTargetFound = () => {
-            if (state.found) return;
-            state.found = true;
             onTargetFound?.(); // drive shared UI state for video-only items
             if (def.autoplay !== false) tryPlayVideo(el); // resume — currentTime never reset
-            // Debug: verify decode + texture wiring (remove after confirming)
-            const logVideo = (tag) =>
-              console.log(`[MarkerTracker] card-video ${tag}:`, {
-                readyState: el.readyState,
-                videoWidth: el.videoWidth,
-                videoHeight: el.videoHeight,
-                paused: el.paused,
-                currentTime: +el.currentTime.toFixed(2),
-                networkState: el.networkState,
-                error: el.error?.code ?? null,
-                texImageIsEl: tex.image === el,
-                planeVisible: vGroup.visible,
-              });
-            logVideo("target-found");
-            setTimeout(() => {
-              logVideo("+1s");
-              if (!el.paused && el.videoWidth === 0) {
-                console.warn(
-                  "[MarkerTracker] AUDIO PLAYS BUT VIDEO TRACK IS NOT DECODING " +
-                    "(videoWidth=0) — codec unsupported by this browser. " +
-                    "Re-encode: ffmpeg -i jiraiya.mp4 -c:v libx264 -profile:v main -pix_fmt yuv420p -c:a aac jiraiya-h264.mp4"
-                );
-              }
-            }, 1000);
           };
           vAnchor.onTargetLost = () => {
-            if (!state.found) return;
-            state.found = false;
-            state.lastSeenAt = performance.now();
             el.pause(); // pause only — resumes from same spot on reacquire
             onTargetLost?.();
           };
@@ -705,31 +681,22 @@ export default function MarkerTracker({
         });
       }
 
-      // --- Pose smoothing state (kills MindAR per-frame jitter) ---
+      // --- Pose smoothing state (responsive, no tilt freeze) ---
       const rawPos = new THREE.Vector3();
       const rawQuat = new THREE.Quaternion();
       const rawScale = new THREE.Vector3();
-      const POS_EPS = 0.003; // dead-zone: ignore micro position noise
-      const ROT_EPS = 0.008; // dead-zone: ignore micro rotation noise (~0.5°)
-      const POS_RANGE = 0.05; // delta at which tracking becomes fully responsive
-      const ROT_RANGE = 0.12;
-      const MIN_ALPHA = 0.05; // near-frozen for tiny deltas (jitter)
-      const MAX_ALPHA = 0.45; // responsive for real card movement
 
       renderer.setAnimationLoop(() => {
         const delta = clock.getDelta();
         const now = performance.now();
 
-        
         for (const s of smoothStates) {
-      
           const tracked = s.found || now - s.lastSeenAt < 500;
           s.group.visible = tracked;
           if (!tracked) {
             s.poseInit = false;
             continue;
           }
-
 
           s.anchor.group.matrixWorld.decompose(rawPos, rawQuat, rawScale);
           if (rawScale.lengthSq() <= 1e-10) continue;
@@ -739,22 +706,8 @@ export default function MarkerTracker({
             s.smQuat.copy(rawQuat);
             s.poseInit = true;
           } else {
-            const dist = s.smPos.distanceTo(rawPos);
-            if (dist > POS_EPS) {
-              const a =
-                MIN_ALPHA +
-                (MAX_ALPHA - MIN_ALPHA) *
-                  Math.min(1, (dist - POS_EPS) / POS_RANGE);
-              s.smPos.lerp(rawPos, a);
-            }
-            const ang = s.smQuat.angleTo(rawQuat);
-            if (ang > ROT_EPS) {
-              const a =
-                MIN_ALPHA +
-                (MAX_ALPHA - MIN_ALPHA) *
-                  Math.min(1, (ang - ROT_EPS) / ROT_RANGE);
-              s.smQuat.slerp(rawQuat, a);
-            }
+            s.smPos.lerp(rawPos, 0.4);
+            s.smQuat.slerp(rawQuat, 0.4);
           }
           s.group.position.copy(s.smPos);
           s.group.quaternion.copy(s.smQuat);
