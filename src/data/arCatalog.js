@@ -369,11 +369,12 @@ export const INITIAL_CATALOG = [
     video: {
       type: "video",
       src: jiraiyaVideoUrl,
-      fit: "contain", 
-      aspect: 0.714, 
+      fit: "cover", // fill the vertical card area
+      aspect: 0.714, // standard trading card aspect
+      rotate: 90, // rotate landscape-encoded video to vertical/portrait
       scale: 1.0,
       loop: true,
-      autoplay: true, 
+      autoplay: true,
     },
   },
 ];

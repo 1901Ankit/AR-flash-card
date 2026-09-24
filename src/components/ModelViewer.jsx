@@ -247,8 +247,8 @@ async function createGlb(config) {
     const maxDim = Math.max(size.x, size.y, size.z);
 
    
-    const targetHeight = config.targetHeight ?? 0.8;
-    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.8);
+    const targetHeight = config.targetHeight ?? 0.55;
+    const autoScale = config.scale ?? (maxDim > 0 ? targetHeight / maxDim : 0.55);
 
     model.scale.setScalar(autoScale);
     model.updateMatrixWorld(true);

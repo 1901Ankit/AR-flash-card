@@ -280,10 +280,14 @@ export default function MarkerTracker({
 
           vAnchor.group.add(plane);
           const relayout = () => {
+            const vw = el.videoWidth;
+            const vh = el.videoHeight;
+            const rotateDeg = def.rotate || 0;
+            const vaRaw = vw && vh ? vw / vh : null;
             const va =
-              el.videoWidth && el.videoHeight
-                ? el.videoWidth / el.videoHeight
-                : null;
+              vaRaw && Math.abs(rotateDeg % 180) === 90
+                ? 1 / vaRaw
+                : vaRaw;
             const ca = cardAspect || 0.714;
             const fit = def.fit || "contain";
             const sMult = def.scale || 1.0;
@@ -291,6 +295,8 @@ export default function MarkerTracker({
             let ph = 1 / ca;
             tex.repeat.set(1, 1);
             tex.offset.set(0, 0);
+            tex.center.set(0.5, 0.5);
+            tex.rotation = (rotateDeg * Math.PI) / 180;
 
             if (va) {
               if (fit === "contain") {
