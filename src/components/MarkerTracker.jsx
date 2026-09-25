@@ -195,7 +195,9 @@ export default function MarkerTracker({
           group,
           kind,
           found: false,
-          lastSeenAt: 0,
+          lastSeenAt: -Infinity,
+          fp: NaN,
+          stillFrames: 0,
           poseInit: false,
           smPos: new THREE.Vector3(),
           smQuat: new THREE.Quaternion(),
@@ -732,7 +734,27 @@ export default function MarkerTracker({
 
         
         for (const s of smoothStates) {
-      
+
+          // MindAR flips anchor.group.visible=false the same frame it emits
+          // worldMatrix=null — trust it directly instead of relying on our
+          // found/lost callbacks firing correctly.
+          const anchorVisible = s.anchor.group.visible === true;
+
+          // Watchdog: a live tracker rewrites the pose every frame (its
+          // OneEuro filter is time-dependent), so an identical matrix for
+          // ~1.5s means tracking stalled — force-hide instead of ghosting.
+          const mx = s.anchor.group.matrixWorld.elements;
+          const fp = mx[0] + mx[5] + mx[10] + mx[12] + mx[13] + mx[14];
+          s.stillFrames = fp === s.fp ? s.stillFrames + 1 : 0;
+          s.fp = fp;
+
+          if (anchorVisible && s.stillFrames < 90) {
+            s.found = true;
+          } else if (s.found) {
+            s.found = false;
+            s.lastSeenAt = now;
+          }
+
           const tracked = s.found || now - s.lastSeenAt < 500;
           // Sequenced items show only the active stage's content;
           // unsequenced items (stageRef null) show everything as before
