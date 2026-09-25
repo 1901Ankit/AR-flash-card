@@ -728,7 +728,12 @@ export default function MarkerTracker({
       const MAX_ALPHA = 0.4; // responsive for real card movement
       const SCALE_ALPHA = 0.15; // low-pass on scale so size doesn't shimmer
 
+      // An uncaught throw inside the RAF callback permanently kills the
+      // animation loop (canvas freezes at its last frame). Catch per-frame so
+      // one bad frame logs an error instead of freezing the whole AR view.
+      let loopErrLogged = false;
       renderer.setAnimationLoop(() => {
+        try {
         const delta = clock.getDelta();
         const now = performance.now();
 
@@ -742,13 +747,13 @@ export default function MarkerTracker({
 
           // Watchdog: a live tracker rewrites the pose every frame (its
           // OneEuro filter is time-dependent), so an identical matrix for
-          // ~1.5s means tracking stalled — force-hide instead of ghosting.
+          // ~3s means tracking stalled — force-hide instead of ghosting.
           const mx = s.anchor.group.matrixWorld.elements;
           const fp = mx[0] + mx[5] + mx[10] + mx[12] + mx[13] + mx[14];
           s.stillFrames = fp === s.fp ? s.stillFrames + 1 : 0;
           s.fp = fp;
 
-          if (anchorVisible && s.stillFrames < 90) {
+          if (anchorVisible && s.stillFrames < 180) {
             s.found = true;
           } else if (s.found) {
             s.found = false;
@@ -767,7 +772,13 @@ export default function MarkerTracker({
 
 
           s.anchor.group.matrixWorld.decompose(rawPos, rawQuat, rawScale);
-          if (rawScale.lengthSq() <= 1e-10) continue;
+          // Reject degenerate/NaN poses (MindAR writes a zeroed matrix on
+          // target loss; NaN would permanently poison the smoothed state)
+          const poseOk =
+            Number.isFinite(rawPos.x + rawPos.y + rawPos.z) &&
+            Number.isFinite(rawQuat.x + rawQuat.y + rawQuat.z + rawQuat.w) &&
+            Number.isFinite(rawScale.x + rawScale.y + rawScale.z);
+          if (!poseOk || rawScale.lengthSq() <= 1e-10) continue;
 
           if (!s.poseInit) {
             s.smPos.copy(rawPos);
@@ -835,6 +846,12 @@ export default function MarkerTracker({
 
         animateModel(modelObject, delta);
         renderer.render(scene, camera);
+        } catch (err) {
+          if (!loopErrLogged) {
+            loopErrLogged = true;
+            console.error("[MarkerTracker] render loop error:", err);
+          }
+        }
       });
     };
 
