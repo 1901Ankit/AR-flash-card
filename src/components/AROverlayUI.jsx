@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Volume2, VolumeX, HelpCircle, BookOpen, Layers, Check, X, RotateCw, Plus, Minus, Play } from "lucide-react";
+import { Volume2, VolumeX, HelpCircle, BookOpen, Layers, Check, X, RotateCw, Plus, Minus, Play, SkipForward, SkipBack } from "lucide-react";
 import { tts } from "../services/ttsService";
 
 export default function AROverlayUI({
@@ -12,6 +12,9 @@ export default function AROverlayUI({
   onToggleVideoMute,
   onPlayVideo,
   onExit,
+  stage,
+  onNext,
+  onPrev,
 }) {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [showQuiz, setShowQuiz] = useState(false);
@@ -53,9 +56,11 @@ export default function AROverlayUI({
     };
   }, []);
 
-  // When target is detected for the first time, auto-narrate
+  // When target is detected for the first time, auto-narrate.
+  // Sequenced items hold narration until the model stage so TTS doesn't
+  // talk over the card video.
   useEffect(() => {
-    if (isTargetFound && item?.audio?.script) {
+    if (isTargetFound && item?.audio?.script && stage !== "video") {
       tts.speak(item.audio.script, {
         pitch: item.audio.pitch || 1.0,
         rate: item.audio.rate || 1.0,
@@ -63,7 +68,7 @@ export default function AROverlayUI({
     } else {
       tts.stop();
     }
-  }, [isTargetFound, item]);
+  }, [isTargetFound, item, stage]);
 
   // When a planet/hotspot is tapped, narrate its script exactly once per selection
   // (selId guards against StrictMode double-effects; a deliberate re-tap gets a new selId)
@@ -250,7 +255,33 @@ export default function AROverlayUI({
 
         {/* 3D Quick Adjust Controls — model items only; video cards get Mute */}
         <div className="flex items-center justify-center gap-2 flex-wrap">
-          {item?.model && (
+          {stage === "model" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                tts.stop();
+                onPrev?.();
+              }}
+              className="px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 backdrop-blur-md border border-slate-700 text-slate-200 text-[11px] sm:text-xs font-medium flex items-center gap-1 shadow-sm active:scale-95 transition-transform"
+              title="Back to Video"
+            >
+              <SkipBack className="w-3.5 h-3.5 text-slate-300" /> Prev
+            </button>
+          )}
+          {stage === "video" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                tts.stop();
+                onNext?.();
+              }}
+              className="px-4 py-1.5 rounded-xl bg-violet-600 hover:bg-violet-500 backdrop-blur-md border border-violet-400 text-white text-[11px] sm:text-xs font-semibold flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform"
+              title="Show 3D Model"
+            >
+              Next <SkipForward className="w-3.5 h-3.5 text-white" />
+            </button>
+          )}
+          {item?.model && stage !== "video" && (
             <>
               <button
                 onClick={() => handleScaleModel(1)}
@@ -275,7 +306,7 @@ export default function AROverlayUI({
               </button>
             </>
           )}
-          {hasVideoTarget && (
+          {hasVideoTarget && stage !== "model" && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -386,7 +417,7 @@ export default function AROverlayUI({
       </div>
 
       {/* Autoplay-blocked fallback: tap to start the card video */}
-      {hasVideoTarget && videoNeedsGesture && (
+      {hasVideoTarget && videoNeedsGesture && stage !== "model" && (
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center z-30">
           <button
             onClick={(e) => {

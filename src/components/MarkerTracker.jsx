@@ -12,6 +12,7 @@ export default function MarkerTracker({
   hotspots,
   selectedKey,
   targets,
+  stage,
   videoControlRef,
   onVideoMutedChange,
   onVideoNeedsGesture,
@@ -24,6 +25,13 @@ export default function MarkerTracker({
   const mindarRef = useRef(null);
   const videoRef = useRef(null);
   const clearHighlightRef = useRef(null);
+  // Read inside the render loop so switching video -> model never restarts
+  // the MindAR session (null = no staging, show everything)
+  const stageRef = useRef(null);
+
+  useEffect(() => {
+    stageRef.current = stage ?? null;
+  }, [stage]);
 
   useEffect(() => {
     if (selectedKey == null) clearHighlightRef.current?.();
@@ -181,10 +189,11 @@ export default function MarkerTracker({
         : [{ targetIndex: 0, type: "model" }];
 
       const smoothStates = [];
-      const newSmoothState = (a, group) => {
+      const newSmoothState = (a, group, kind) => {
         const s = {
           anchor: a,
           group,
+          kind,
           found: false,
           lastSeenAt: 0,
           poseInit: false,
@@ -216,7 +225,7 @@ export default function MarkerTracker({
         smoothGroup.visible = false;
         scene.add(smoothGroup);
         smoothGroup.add(modelObject);
-        modelState = newSmoothState(anchor, smoothGroup);
+        modelState = newSmoothState(anchor, smoothGroup, "model");
         window.__arCurrentModel = modelObject;
       }
 
@@ -326,7 +335,7 @@ export default function MarkerTracker({
           scene.add(vGroup);
           vGroup.add(plane);
 
-          const state = newSmoothState(vAnchor, vGroup);
+          const state = newSmoothState(vAnchor, vGroup, "video");
           state.el = el;
           state.tex = tex;
           state.def = def;
@@ -344,7 +353,13 @@ export default function MarkerTracker({
             if (state.found) return;
             state.found = true;
             onTargetFound?.(); // drive shared UI state for video-only items
-            if (def.autoplay !== false) tryPlayVideo(el); // resume — currentTime never reset
+            // Autoplay only while the video stage is active (sequenced items
+            // may already be on the model stage when the target is re-found)
+            if (
+              def.autoplay !== false &&
+              (!stageRef.current || stageRef.current === "video")
+            )
+              tryPlayVideo(el); // resume — currentTime never reset
             // Debug: verify decode + texture wiring (remove after confirming)
             const logVideo = (tag) =>
               console.log(`[MarkerTracker] card-video ${tag}:`, {
@@ -514,6 +529,7 @@ export default function MarkerTracker({
       };
 
       const handleTap = (event) => {
+        if (stageRef.current && stageRef.current !== "model") return;
         if (!hotspots || !modelObject || !camera || !renderer?.domElement) return;
         const rect = renderer.domElement.getBoundingClientRect();
         if (!rect.width || !rect.height) return;
@@ -626,7 +642,11 @@ export default function MarkerTracker({
         // First tap on the AR surface = the browser's required user gesture:
         // unmute the card video (unless the user explicitly muted it) and
         // retry play() in case autoplay was blocked earlier.
-        if (firstVideoEl && !videoGestureUnlocked) {
+        if (
+          firstVideoEl &&
+          !videoGestureUnlocked &&
+          (!stageRef.current || stageRef.current === "video")
+        ) {
           videoGestureUnlocked = true;
           if (!videoExplicitMuted) {
             firstVideoEl.muted = false;
@@ -714,7 +734,10 @@ export default function MarkerTracker({
         for (const s of smoothStates) {
       
           const tracked = s.found || now - s.lastSeenAt < 500;
-          s.group.visible = tracked;
+          // Sequenced items show only the active stage's content;
+          // unsequenced items (stageRef null) show everything as before
+          s.group.visible =
+            tracked && (!stageRef.current || s.kind === stageRef.current);
           if (!tracked) {
             s.poseInit = false;
             continue;
@@ -755,6 +778,25 @@ export default function MarkerTracker({
 
      
         for (const s of videoStates) {
+          // Pause video when its stage is hidden (e.g. user pressed Next)
+          if (
+            s.el &&
+            stageRef.current &&
+            s.kind !== stageRef.current &&
+            !s.el.paused
+          ) {
+            s.el.pause();
+          }
+          // Resume playback when returning to the video stage (Prev)
+          if (
+            s.el &&
+            stageRef.current === "video" &&
+            s.el.paused &&
+            (s.found || now - s.lastSeenAt < 500) &&
+            s.def?.autoplay !== false
+          ) {
+            tryPlayVideo(s.el);
+          }
           if (s.tex && s.el && !s.el.paused && s.el.readyState >= 2) {
             s.tex.needsUpdate = true;
           }

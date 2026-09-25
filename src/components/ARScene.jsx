@@ -13,6 +13,10 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
   const videoControlRef = useRef(null);
   const [videoMuted, setVideoMuted] = useState(true);
   const [videoNeedsGesture, setVideoNeedsGesture] = useState(false);
+  // Items with BOTH video + model run a sequence: video plays on the card
+  // first, the 3D model appears after the user taps Next
+  const sequenced = !!(item?.video && item?.model);
+  const [stage, setStage] = useState(sequenced ? "video" : null);
 
   useEffect(() => {
     return () => {
@@ -78,7 +82,14 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
   // - otherwise MarkerTracker defaults to the 3D model on target index 0
   const derivedTargets =
     activeItem.targets ??
-    (activeItem.video ? [{ targetIndex: 0, ...activeItem.video }] : undefined);
+    (activeItem.video
+      ? activeItem.model
+        ? [
+            { targetIndex: 0, ...activeItem.video },
+            { targetIndex: 0, type: "model" },
+          ]
+        : [{ targetIndex: 0, ...activeItem.video }]
+      : undefined);
 
   const handleToggleVideoMute = useCallback(() => {
     videoControlRef.current?.toggleMute();
@@ -111,6 +122,7 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
         videoControlRef={videoControlRef}
         onVideoMutedChange={setVideoMuted}
         onVideoNeedsGesture={setVideoNeedsGesture}
+        stage={stage}
       />
 
       {/* Interactive AR Overlay HUD */}
@@ -124,6 +136,9 @@ export default function ARScene({ item, imageTargetSrc, modelConfig, onExit }) {
         onToggleVideoMute={handleToggleVideoMute}
         onPlayVideo={handlePlayVideo}
         onExit={handleExit}
+        stage={stage}
+        onNext={() => setStage("model")}
+        onPrev={() => setStage("video")}
       />
 
       <style>{`

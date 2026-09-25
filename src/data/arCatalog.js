@@ -8,10 +8,7 @@ import jiraiyaVideoUrl from "../assets/jiraiya.mp4?url";
 import gokuMarkerImg from "../assets/goku.png";
 import dragonMarkerImg from "../assets/dragon.jpg";
 
-// TODO: compile the Jiraiya card image into src/assets/marker/targetJiraiya.mind
-// (https://hiukim.github.io/mind-ar-js-doc/tools/compile) then swap this for:
-//   import targetJiraiyaMindUrl from "../assets/marker/targetJiraiya.mind?url";
-const targetJiraiyaMindUrl = target1MindUrl; // placeholder — reuses existing marker
+const targetJiraiyaMindUrl = target1MindUrl;
 
 export const CATEGORIES = [
   { id: "all", label: "All Items", icon: "Sparkles" },
@@ -37,6 +34,14 @@ export const INITIAL_CATALOG = [
       xOffset: 0,
       yOffset: 0,
       zOffset: 0,
+    },
+    // Sequence: video plays on the card first, Next button reveals the model
+    video: {
+      type: "video",
+      src: jiraiyaVideoUrl,
+      fit: "cover",
+      loop: true,
+      autoplay: true,
     },
     audio: {
       script: "I am Son Goku! Defender of Earth! Let us train together and break our limits!",
